@@ -1,0 +1,9 @@
+// Central SCSS entry point — import all stylesheets here
+// Component SCSS files are added below as components are created
+
+@use './variables' as *;
+@use './root';
+@use './globalStyles';
+
+// Components (add imports here as components are built)
+// @use '../components/ExampleComponent/exampleComponent';

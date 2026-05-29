@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "component|hook|store|context|route|page|layout|service|fetch|api|feature|create|build|write|implement|add|fix|update|refactor|complete|make|code|type|interface|util|helper|form|modal|view|table|list|card|button|input|action|reducer|slice|provider|plan|plans|planning",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx .claude/hooks/audit_before_code.ts"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx .claude/hooks/enforce_during_implementation.ts"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx .claude/hooks/definition_of_done.ts"
+          }
+        ]
+      }
+    ]
+  }
+}
