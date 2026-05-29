@@ -1,0 +1,26 @@
+// CSS custom properties — available globally via var(--<name>)
+
+:root {
+  // Colors
+  --color-primary: #3b82f6;
+  --color-primary-dark: #1d4ed8;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f8fafc;
+
+  // Typography
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+
+  // Layout
+  --max-width: 1280px;
+  --header-height: 64px;
+}
