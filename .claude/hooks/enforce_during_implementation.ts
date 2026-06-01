@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -208,7 +209,9 @@ function main() {
     }
   }
 
-  // Gate 4 — Co-located test file for .ts/.tsx files under src/
+  // Gate 4 — Test file required for .ts/.tsx files under src/
+  // Context files (src/contexts/*.tsx) are an exception: their tests live in
+  // src/contexts/contextTests/ rather than co-located alongside the context file.
   const isSrcFile = relPath.startsWith('src/') || relPath.startsWith('src' + path.sep);
   const isTsFile = /\.(ts|tsx)$/.test(filePath);
   const isTestFile = /\.(test|spec)\.(ts|tsx)$/.test(filePath);
@@ -216,7 +219,12 @@ function main() {
   if (isSrcFile && isTsFile && !isTestFile && !shouldSkipTestGate(filePath, repoRoot)) {
     const ext = filePath.endsWith('.tsx') ? '.tsx' : '.ts';
     const baseName = path.basename(filePath, ext);
-    const expectedTestPath = path.join(path.dirname(filePath), `${baseName}.test${ext}`);
+    const isContextFile = (
+      relPath.startsWith('src/contexts/') || relPath.startsWith('src' + path.sep + 'contexts' + path.sep)
+    ) && !relPath.includes('contextTests');
+    const expectedTestPath = isContextFile
+      ? path.join(repoRoot, 'src', 'contexts', 'contextTests', `${baseName}.test${ext}`)
+      : path.join(path.dirname(filePath), `${baseName}.test${ext}`);
     const relExpected = path.relative(repoRoot, expectedTestPath);
     const fileAlreadyExists = fs.existsSync(filePath);
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync, spawnSync } from 'child_process';

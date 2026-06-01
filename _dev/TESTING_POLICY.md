@@ -38,9 +38,23 @@ Do not mock `fetch` or `axios` with hand-rolled mocks when MSW can do the job.
 **Not required:**
 - End-to-end (E2E) tests (Playwright, Cypress) are NOT required for this project.
 
+## Test File Location
+
+Most test files are co-located with the file they test:
+```
+src/components/Button/Button.tsx
+src/components/Button/Button.test.tsx   ← co-located
+```
+
+**Exception — contexts:** test files for `src/contexts/` live in `src/contexts/contextTests/`:
+```
+src/contexts/ThemeContext.tsx
+src/contexts/contextTests/ThemeContext.test.tsx   ← in contextTests/
+```
+
 ## What Does Not Need a Test
 
-The following files are exempt from coverage and do not require a co-located test:
+The following files are exempt from coverage and do not require a test file:
 - `*.config.ts`, `*.config.tsx`, `vite.config.ts`, `vitest.config.ts`
 - `main.tsx`
 - `*.d.ts`
