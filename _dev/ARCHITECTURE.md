@@ -491,6 +491,7 @@ src/
 │       ├── MyComponentPage.tsx   # only if this component has an associated page
 │       └── myComponent.scss
 ├── contexts/              # React Contexts — do not add without approval
+│   └── contextTests/      # Test files for all contexts (not co-located)
 ├── hooks/                 # Custom hooks — must use 'use' prefix
 ├── services/              # Mutation service functions (POST/PUT/DELETE via apiClient)
 ├── utils/                 # Pure utility functions (no side effects, no React imports)
@@ -569,6 +570,95 @@ src/
     return ctx
   }
   ```
+
+---
+
+## Mobile-First UI Rules
+
+### Target devices
+
+| Device | CSS width | CSS height | Landscape width |
+|---|---|---|---|
+| iPhone 14 | 390px | 844px | 844px |
+| iPhone 17 | 402px | 874px | 874px |
+| Samsung Galaxy S25+ | 412px | 891px | 891px |
+| Google Pixel 10 | 412px | 924px | 924px |
+
+Widths below **390px** and widths between **925px–1023px** are out of scope and do not
+need to be accommodated.
+
+### Breakpoints
+
+Defined in `src/styles/variables.scss` as `$breakpoints`. Use the `bp()` mixin:
+
+```scss
+@use '../../styles/variables' as *;
+
+.my-component {
+  // base styles — 390px and up (mobile portrait, single column)
+
+  @include bp('mobile-lg') {
+    // 412px and up — wider Android phones, minor width-sensitive tweaks only
+  }
+
+  @include bp('landscape') {
+    // 844px and up — mobile landscape, same single-column layout, reduce vertical padding
+  }
+
+  @include bp('desktop') {
+    // 1024px and up — two-column body grid
+  }
+}
+```
+
+| Name | Min-width | Covers |
+|---|---|---|
+| _(base)_ | 390px | iPhone 14, iPhone 17 — no breakpoint, base styles apply |
+| `mobile-lg` | 412px | Pixel 10, Samsung S25+ — subtle width-sensitive adjustments |
+| `landscape` | 844px | All target devices in landscape — layout unchanged (single column) |
+| `desktop` | 1024px | Desktop — two-column body grid |
+
+### Layout grid
+
+- **Mobile (base → 1023px):** single column, full width
+- **Desktop (1024px+):** two-column grid applied to **page body content only**
+- Header and sidebar are full-width in all breakpoints — they belong to the Layout component
+
+### Landscape mode
+
+Landscape displays the same single-column layout as portrait. The `landscape` breakpoint
+(844px) is available for minor vertical-space adjustments (e.g. reduced padding) only.
+No separate layout pattern is required.
+
+### Scrolling policy
+
+Minimize scrolling where reasonable, but do not prohibit it. Some views (charts, long
+lists) inherently require scrolling. Evaluate case by case — prefer viewport-contained
+layouts for forms and dashboards.
+
+### Touch targets
+
+All interactive elements must meet a **44×44px minimum tap target**. This applies to
+buttons, links, inputs, icons, and any tappable element. PrimeReact's default styles
+generally satisfy this — verify and override with explicit `min-width`/`min-height` if
+a component falls short.
+
+### Safe area insets
+
+The Layout component must apply `env(safe-area-inset-*)` padding to protect content
+from iPhone Dynamic Island / Android edge-to-edge display cutouts. The viewport meta
+tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
+
+### Theme
+
+- **PrimeReact theme:** Lara Light Blue / Lara Dark Blue (toggled dynamically)
+- **Default:** system `prefers-color-scheme` media query
+- **User override:** toggle stored in `localStorage` under key `theme`
+- **Implementation:** `ThemeProvider` in `src/contexts/ThemeContext.tsx`
+  - Sets `data-theme="light" | "dark"` on `<html>` for our own CSS custom properties
+  - Injects / swaps a `<link id="primereact-theme">` element for the PrimeReact theme CSS
+- **Our CSS custom properties:** light-mode values in `:root` (root.scss);
+  dark-mode overrides in `[data-theme="dark"]` (root.scss)
 
 ---
 

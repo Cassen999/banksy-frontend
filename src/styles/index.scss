@@ -1,6 +1,11 @@
 // Central SCSS entry point — import all stylesheets here
 // Component SCSS files are added below as components are created
 
+// PrimeReact base component styles and PrimeIcons are imported as JS imports
+// in src/main.tsx (Vite bundles CSS package imports most reliably from JS).
+// The active PrimeReact theme (lara-light-blue / lara-dark-blue) is injected
+// dynamically by ThemeContext based on the user's light/dark preference.
+
 @use './variables' as *;
 @use './root';
 @use './globalStyles';

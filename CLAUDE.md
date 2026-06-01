@@ -61,9 +61,10 @@ Fires when `src/` TypeScript files have changed. Runs Vitest with coverage and c
 
 ## Test Convention
 
-- Every `.ts` / `.tsx` file under `src/` (except skipped files) requires a co-located test file
+- Every `.ts` / `.tsx` file under `src/` (except skipped files) requires a test file
 - Write the test file **before** the implementation file
 - Test file naming: `ComponentName.test.tsx` alongside `ComponentName.tsx`
+- **Context files are an exception:** test files for `src/contexts/` live in `src/contexts/contextTests/` — not alongside the context file
 - Skipped files (no test required): `*.config.ts`, `*.d.ts`, `index.ts`, `index.tsx`, `*.types.ts`, `main.tsx`, `App.tsx`, and files under `src/types/`, `src/assets/`, `src/styles/`, `src/mocks/`, `src/test/`
 
 ## Commands

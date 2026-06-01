@@ -24,3 +24,16 @@
   --max-width: 1280px;
   --header-height: 64px;
 }
+
+[data-theme='dark'] {
+  --color-primary: #60a5fa;
+  --color-primary-dark: #3b82f6;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-text: #e2e8f0;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+  --color-bg: #1e1e2e;
+  --color-bg-subtle: #2d2d3f;
+}

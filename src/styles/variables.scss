@@ -1,5 +1,26 @@
+@use 'sass:map';
+
 // SCSS variables — use these when CSS custom properties are not appropriate
 // For colors, prefer the custom properties defined in root.scss
+
+// Breakpoints — mobile-first (min-width and up)
+// Base styles target 390px+ (smallest supported device: iPhone 14)
+// Widths below 390px and between 925px–1023px are out of scope
+$breakpoints: (
+  'mobile-lg':  412px,   // wider Android phones (Pixel 10, Samsung S25+)
+  'landscape':  844px,   // mobile landscape — layout unchanged, spacing adjustments only
+  'desktop':    1024px,  // two-column body grid
+);
+
+@mixin bp($name) {
+  $value: map.get($breakpoints, $name);
+  @if $value == null {
+    @error 'Unknown breakpoint: "#{$name}". Available: #{map.keys($breakpoints)}';
+  }
+  @media (min-width: #{$value}) {
+    @content;
+  }
+}
 
 $font-family-base: 'Inter', system-ui, sans-serif;
 $font-size-base: 1rem;
