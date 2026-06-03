@@ -1,0 +1,30 @@
+@use '../../styles/variables' as *;
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+
+  &__body {
+    flex: 1;
+    padding: $spacing-md;
+    padding-bottom: max(env(safe-area-inset-bottom), $spacing-md);
+
+    @include bp('desktop') {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-lg;
+      padding: $spacing-xl;
+      padding-bottom: max(env(safe-area-inset-bottom), $spacing-xl);
+    }
+  }
+
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+  }
+}

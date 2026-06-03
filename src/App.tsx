@@ -1,10 +1,15 @@
 import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import Layout from './components/Layout/Layout';
 
 export default function App() {
   return (
-    <Routes>
-      {/* Routes are added here as features are implemented */}
-      <Route path="/" element={<div>Banksy</div>} />
-    </Routes>
+    <AuthProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<p>Welcome to Banksy</p>} />
+        </Routes>
+      </Layout>
+    </AuthProvider>
   );
 }

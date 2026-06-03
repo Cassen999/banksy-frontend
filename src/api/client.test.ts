@@ -39,6 +39,20 @@ describe('apiClient', () => {
     expect(handleUnauthorized).not.toHaveBeenCalled();
   });
 
+  it('should_notCallHandleUnauthorized_when401ReceivedFromAuthMeEndpoint', async () => {
+    const { handleUnauthorized } = await import('../utils/auth');
+    const { apiClient } = await import('./client');
+
+    server.use(
+      http.get('http://localhost:8080/api/auth/me', () =>
+        new HttpResponse(null, { status: 401 }),
+      ),
+    );
+
+    await expect(apiClient.get('/api/auth/me')).rejects.toThrow();
+    expect(handleUnauthorized).not.toHaveBeenCalled();
+  });
+
   it('should_notCallHandleUnauthorized_whenNetworkErrorHasNoResponse', async () => {
     const { handleUnauthorized } = await import('../utils/auth');
     const { apiClient } = await import('./client');

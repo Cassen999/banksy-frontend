@@ -1,0 +1,179 @@
+@use '../../styles/variables' as *;
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background-color: var(--color-bg);
+  border-bottom: 1px solid var(--blue-300);
+  padding-top: env(safe-area-inset-top);
+
+  &__mobile {
+    display: flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-md;
+    height: var(--header-height);
+    box-sizing: border-box;
+
+    @include bp('desktop') {
+      display: none;
+    }
+  }
+
+  &__hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: $spacing-sm;
+    background: none;
+    border: none;
+    border-radius: $border-radius-base;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color $transition-base;
+
+    &:hover {
+      background-color: var(--color-bg-subtle);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    i {
+      font-size: var(--font-size-xl);
+    }
+  }
+
+  &__app-logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    margin-left: $spacing-md;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+      border-radius: $border-radius-base;
+    }
+  }
+
+  &__app-logo {
+    height: 40px;
+    width: auto;
+  }
+
+  &__mobile-auth {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    flex-direction: row-reverse;
+  }
+
+  &__auth-button {
+    padding: $spacing-sm;
+  }
+
+  &__auth-button .p-button-label {
+    font-weight: 400;
+  }
+
+  // Desktop layout
+
+  &__desktop {
+    display: none;
+
+    @include bp('desktop') {
+      display: flex;
+      align-items: center;
+      padding: $spacing-sm $spacing-xl;
+      height: var(--header-height);
+      box-sizing: border-box;
+      margin: $spacing-sm 0;
+    }
+  }
+
+  &__brand-link {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+      border-radius: $border-radius-base;
+    }
+  }
+
+  &__brand-logo {
+    height: 36px;
+    width: auto;
+  }
+
+  &__nav {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 $spacing-xl;
+
+    .p-menubar {
+      border-radius: 9999px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.20);
+      border: 1px solid var(--color-border);
+      background-color: var(--color-bg);
+      padding: $spacing-sm $spacing-lg;
+      gap: $spacing-sm;
+    }
+
+    .p-menubar-root-list {
+      display: flex;
+      gap: $spacing-md;
+    }
+
+    .p-menuitem-icon {
+      margin-right: $spacing-xs;
+    }
+  }
+
+  &__menubar-logo-link {
+    display: flex;
+    align-items: center;
+    margin-right: $spacing-sm;
+    text-decoration: none;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+      border-radius: $border-radius-base;
+    }
+  }
+
+  &__menubar-logo {
+    height: 28px;
+    width: auto;
+  }
+
+  &__user-section {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    flex-shrink: 0;
+  }
+
+  &__welcome {
+    color: var(--color-text);
+    font-size: $font-size-base;
+    white-space: nowrap;
+  }
+}
+
+[data-theme='dark'] .header {
+  &__nav .p-menubar {
+      background-color: var(--color-overlay-bg);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  }
+}

@@ -10,7 +10,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // /api/auth/me returning 401 means "not logged in" — expected on load after logout.
+    // Every other 401 means a session expired mid-use and requires re-authentication.
+    if (error.response?.status === 401 && error.config?.url !== '/api/auth/me') {
       handleUnauthorized();
     }
     return Promise.reject(error);
