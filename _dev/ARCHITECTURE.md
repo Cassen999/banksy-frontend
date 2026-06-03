@@ -36,9 +36,9 @@ user to the login page and clear all local user state.
 ### Public endpoints (no session required)
 
 - `/login`
+- `/logout`
 - `/oauth2/**`
 - `/error`
-- `POST /api/auth/logout`
 
 All other `/api/**` endpoints require an active session.
 
@@ -49,9 +49,9 @@ All other `/api/**` endpoints require an active session.
 Authentication is entirely OAuth-based (currently Google). The frontend does not handle
 credentials or tokens — it only:
 
-1. Redirects unauthenticated users to `/login` (which the backend handles)
+1. Redirects unauthenticated users to Google OAuth via `GET /oauth2/authorization/google`
 2. Calls `GET /api/auth/me` on app load to confirm a session is active and get the user profile
-3. Calls `POST /api/auth/logout` on sign-out, then clears local state and redirects to login
+3. Navigates the browser to `GET /logout` on sign-out — Spring invalidates the session and redirects through Google's OIDC end-session flow before returning the browser to the frontend
 
 ### `GET /api/auth/me`
 
@@ -68,11 +68,11 @@ interface iUser {
 }
 ```
 
-### `POST /api/auth/logout`
+### `GET /logout`
 
-Invalidates the session. Public — can be called without a valid session.
-
-**Response (200):** `{ loggedOut: true }`
+Navigate the browser here via `window.location.href`. Spring invalidates the session,
+redirects through Google's OIDC end-session endpoint to fully sign the user out of Google,
+then returns the browser to the frontend root. Not called via Axios — no JSON response.
 
 ---
 
@@ -283,7 +283,7 @@ Any linked user (owner or shared) can trigger deletion. Not reversible.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `GET` | `/api/auth/me` | Public | Get current user / check session |
-| `POST` | `/api/auth/logout` | Public | Invalidate session |
+| `GET` | `/logout` | Public | Full OIDC sign-out — invalidates session + Google token |
 | `GET` | `/api/balance` | Required | Account balances + relink signals |
 | `GET` | `/api/transactions` | Required | Transactions (`?days=N`) + relink signals |
 | `GET` | `/api/plaid/status` | Required | Relink signals at login |
@@ -697,13 +697,44 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 ---
 
+## Layout Component
+
+`src/components/Layout/Layout.tsx` is the full-app shell. It renders:
+- `AppHeader` — sticky header with responsive mobile/desktop variants
+- `AppSidebar` — mobile-only sliding panel (hidden on desktop via CSS)
+- A full-screen backdrop overlay when the sidebar is open
+- `<main>` wrapping all page content
+
+**HTML hierarchy decision (enforced globally):** `<h1>` belongs in the page body (inside `<main>`), never in the `<header>`. Every page rendered in Layout must begin with its own `<h1>`.
+
+**Sidebar toggle:** The hamburger button (`☰`) in the mobile header opens the sidebar. The `×` button inside the sidebar panel closes it. Clicking the backdrop also closes it.
+
+**Context provider nesting:** Future page-level context providers (not `ThemeProvider` and not `AuthProvider`) are added *inside* the Layout's `<main>`, not in `main.tsx` or `App.tsx`.
+
+---
+
+## Auth Architecture
+
+### `src/contexts/AuthContext.tsx`
+Stores the current user session. Calls `authService.fetchMe()` on mount (once); any error sets user to `null`. Provides `user`, `isLoading`, and `clearUser` via `useAuth()`. Registers `clearUser` with `registerClearUser` so the Axios 401 interceptor can clear auth state without a circular import.
+
+**Placement:** `AuthProvider` wraps `<Layout>` inside `App.tsx`. It is NOT inside `main.tsx`.
+
+### `src/services/authService.ts`
+- `fetchMe()` — `GET /api/auth/me`. Returns `iUser`. Throws on any non-2xx.
+
+### `src/utils/auth.ts` (updated)
+Added `registerClearUser(fn)` so `handleUnauthorized()` can call the AuthContext's `clearUser` before redirecting to the OAuth URL. The registered function is stored in module-level state; `AuthProvider` registers its `clearUser` on mount.
+
+---
+
 ## Routing Table
 
 Routes are defined in `src/App.tsx`. Update this table whenever a route is added or removed.
 
 | Path | Component | Description |
 |------|-----------|-------------|
-| `/` | — | Placeholder (to be replaced with landing/dashboard) |
+| `/` | placeholder `<p>` | Home page placeholder — to be replaced |
 
 ---
 

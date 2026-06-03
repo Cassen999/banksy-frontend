@@ -18,10 +18,11 @@ A `401` response on any protected endpoint means the session has expired.
 Redirect the user to the login page.
 
 **Public endpoints (no session required):**
+
 - `/login`
+- `/logout`
 - `/oauth2/**`
 - `/error`
-- `POST /api/auth/logout`
 
 All other `/api/**` endpoints require an active session.
 
@@ -96,35 +97,22 @@ No body. Show a generic error.
 
 ---
 
-### POST /api/auth/logout
+### GET /logout
 
-**Description:** Invalidates the current session. This endpoint is public — it
-can be called even without a valid session. After success, clear any local user
-state and redirect to the login page.
+**Description:** Navigating the browser to this URL (via window.location.href) will invalidate the Spring session and delete the JSESSIONID cookie, then
+redirect the browser directly to http://localhost:5173. The next time the user clicks Login, Google will show the account selection screen
+rather than silently re-authenticating.
 
-**Auth required:** No (permitted without a session).
+**Auth required:** No (permitted without a valid session).
 
-**Request**
+**How to call:**
 
-```
-No body. No params. No path variables.
-```
-
-**Axios config**
-
-```
-method:          POST
-url:             /api/auth/logout
-withCredentials: true
+```ts
+window.location.href = `${import.meta.env.VITE_API_BASE_URL}/logout`;
 ```
 
-**Response — 200 OK**
-
-```
-{
-  loggedOut: true
-}
-```
+**Response:** No JSON. Browser is redirected through Google sign-out and lands at the
+frontend root URL.
 
 ---
 
@@ -655,6 +643,7 @@ No body. Redirect to login.
 ### DELETE /api/plaid/item/:plaidItemId
 
 **Description:** Fully removes a bank connection. This operation:
+
 1. Revokes the access token at Plaid (skipped automatically if the item's status
    is `INVALID_TOKEN` — the token is already gone from Plaid's side)
 2. Hard-deletes the `PlaidItem` and all its `PlaidAccount` rows from the database
@@ -718,17 +707,17 @@ No body. Redirect to login.
 
 ## Quick Reference
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/auth/me` | Public | Get current user profile / check session |
-| `POST` | `/api/auth/logout` | Public | Invalidate session |
-| `GET` | `/api/balance` | Required | Get account balances + relink signals |
-| `GET` | `/api/transactions` | Required | Get transactions (optional `?days=N`) + relink signals |
-| `GET` | `/api/plaid/status` | Required | Get relink signals at login |
-| `GET` | `/api/plaid/link-token` | Required | Get token to open new Plaid Link |
-| `GET` | `/api/plaid/link-token/refresh/:itemId` | Required (owner only) | Get token for update-mode re-auth |
-| `GET` | `/api/plaid/link-token/full-relink/:itemId` | Required (owner only) | Get token for full re-link |
-| `POST` | `/api/plaid/exchange` | Required | Exchange public token after Link completes |
-| `POST` | `/api/plaid/share` | Required (owner only) | Share a bank with another user |
-| `PUT` | `/api/plaid/account/:plaidAccountId/hide` | Required | Soft-hide one account |
-| `DELETE` | `/api/plaid/item/:plaidItemId` | Required | Fully remove a bank connection |
+| Method   | Path                                        | Auth                  | Description                                             |
+| -------- | ------------------------------------------- | --------------------- | ------------------------------------------------------- |
+| `GET`    | `/api/auth/me`                              | Public                | Get current user profile / check session                |
+| `GET`    | `/logout`                                   | Public                | Full OIDC sign-out — invalidates session + Google token |
+| `GET`    | `/api/balance`                              | Required              | Get account balances + relink signals                   |
+| `GET`    | `/api/transactions`                         | Required              | Get transactions (optional `?days=N`) + relink signals  |
+| `GET`    | `/api/plaid/status`                         | Required              | Get relink signals at login                             |
+| `GET`    | `/api/plaid/link-token`                     | Required              | Get token to open new Plaid Link                        |
+| `GET`    | `/api/plaid/link-token/refresh/:itemId`     | Required (owner only) | Get token for update-mode re-auth                       |
+| `GET`    | `/api/plaid/link-token/full-relink/:itemId` | Required (owner only) | Get token for full re-link                              |
+| `POST`   | `/api/plaid/exchange`                       | Required              | Exchange public token after Link completes              |
+| `POST`   | `/api/plaid/share`                          | Required (owner only) | Share a bank with another user                          |
+| `PUT`    | `/api/plaid/account/:plaidAccountId/hide`   | Required              | Soft-hide one account                                   |
+| `DELETE` | `/api/plaid/item/:plaidItemId`              | Required              | Fully remove a bank connection                          |

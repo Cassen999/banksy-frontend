@@ -50,11 +50,6 @@ const auth = {
       new HttpResponse(null, { status: 500 }),
     ),
   },
-  logout: {
-    success: http.post(`${API}/api/auth/logout`, () =>
-      HttpResponse.json({ loggedOut: true }),
-    ),
-  },
 };
 
 // --- Balance handlers ---
@@ -186,7 +181,6 @@ export const handlers = { auth, balance, transactions, plaid };
 // Default handlers used by the MSW server — all happy-path success cases
 export const defaultHandlers = [
   handlers.auth.me.success,
-  handlers.auth.logout.success,
   handlers.balance.success,
   handlers.transactions.success,
   handlers.plaid.status.healthy,

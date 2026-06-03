@@ -1,0 +1,111 @@
+@use '../../styles/variables' as *;
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: min(280px, 85vw);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+  transform: translateX(-100%);
+  transition: transform 300ms ease;
+  padding-top: max(env(safe-area-inset-top), $spacing-sm);
+  padding-left: env(safe-area-inset-left);
+
+  @include bp('desktop') {
+    display: none;
+  }
+
+  &--open {
+    transform: translateX(0);
+  }
+
+  &__close {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: $spacing-sm;
+    padding: $spacing-sm;
+    background: none;
+    border: none;
+    border-radius: $border-radius-base;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background-color $transition-base;
+
+    &:hover {
+      background-color: var(--color-bg-subtle);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    i {
+      font-size: var(--font-size-lg);
+    }
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-md $spacing-md;
+    color: var(--color-text);
+    font-weight: 600;
+
+    i {
+      font-size: var(--font-size-xl);
+    }
+  }
+
+  &__nav-wrapper {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  &__nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__nav-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-md $spacing-lg;
+    color: var(--color-text);
+    font-size: $font-size-base;
+    cursor: pointer;
+    transition: background-color $transition-base;
+    min-height: 44px;
+
+    &:hover {
+      background-color: var(--color-bg-subtle);
+    }
+
+    i {
+      font-size: $font-size-base;
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__copyright {
+    display: block;
+    text-align: center;
+    padding: $spacing-md;
+    padding-bottom: max(env(safe-area-inset-bottom), $spacing-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: auto;
+  }
+}
