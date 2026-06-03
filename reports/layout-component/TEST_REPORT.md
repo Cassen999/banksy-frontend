@@ -28,28 +28,28 @@ _None_
 ### Vitest Output
 
 ```
-x > AppHeader > auth button — logged in > should_showLogoutButtons_whenUserIsLoggedIn 24ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_showOverlay_whenSidebarIsOpen 53ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenOverlayIsClicked 81ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > auth button — logged in > should_navigateToLogoutUrl_whenLogoutClicked 40ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_showWelcomeMessage_whenUserIsLoggedIn 21ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_notShowWelcomeMessage_whenUserIsNull 21ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMenubarComponent 23ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMultipleLogoLinksIncludingMenubarStart 35ms
- ✓ src/utils/auth.test.ts > handleUnauthorized > should_redirectToOAuthEndpoint_whenCalled 6ms
+der/AppHeader.test.tsx > AppHeader > auth button — logged in > should_navigateToLogoutUrl_whenLogoutClicked 36ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_showWelcomeMessage_whenUserIsLoggedIn 24ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_openSidebar_whenHamburgerIsClicked 68ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_showOverlay_whenSidebarIsOpen 65ms
+ ✓ src/utils/auth.test.ts > handleUnauthorized > should_redirectToOAuthEndpoint_whenCalled 4ms
  ✓ src/utils/auth.test.ts > handleUnauthorized > should_callRegisteredClearUser_beforeRedirecting 1ms
  ✓ src/utils/auth.test.ts > handleUnauthorized > should_notThrow_whenNoClearUserIsRegistered 1ms
  ✓ src/utils/auth.test.ts > registerClearUser > should_storeFunction_thatIsCalledByHandleUnauthorized 0ms
  ✓ src/utils/auth.test.ts > registerClearUser > should_replaceExistingRegistration_whenCalledAgain 0ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenXButtonIsClicked 73ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_notShowOverlay_whenSidebarIsClosed 27ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_lockBodyScroll_whenSidebarOpens 42ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_restoreBodyScroll_whenSidebarCloses 55ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_notShowWelcomeMessage_whenUserIsNull 25ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMenubarComponent 30ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMultipleLogoLinksIncludingMenubarStart 47ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenOverlayIsClicked 80ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenXButtonIsClicked 78ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_notShowOverlay_whenSidebarIsClosed 28ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_lockBodyScroll_whenSidebarOpens 52ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_restoreBodyScroll_whenSidebarCloses 62ms
 
  Test Files  8 passed (8)
       Tests  70 passed (70)
-   Start at  13:57:08
-   Duration  3.82s (transform 802ms, setup 2.41s, import 3.90s, tests 3.80s, environment 9.73s)
+   Start at  16:11:50
+   Duration  3.09s (transform 480ms, setup 2.56s, import 1.99s, tests 3.13s, environment 7.69s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------

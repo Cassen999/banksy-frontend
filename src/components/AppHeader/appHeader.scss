@@ -5,7 +5,7 @@
   top: 0;
   z-index: 200;
   background-color: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--blue-300);
   padding-top: env(safe-area-inset-top);
 
   &__mobile {
@@ -30,7 +30,6 @@
     background: none;
     border: none;
     border-radius: $border-radius-base;
-    color: var(--color-text);
     cursor: pointer;
     flex-shrink: 0;
     transition: background-color $transition-base;
@@ -52,8 +51,8 @@
   &__app-logo-link {
     display: flex;
     align-items: center;
-    margin-left: 2rem;
     text-decoration: none;
+    margin-left: $spacing-md;
 
     &:focus-visible {
       outline: 2px solid var(--color-primary);
@@ -63,12 +62,23 @@
   }
 
   &__app-logo {
-    height: 32px;
+    height: 40px;
     width: auto;
   }
 
   &__mobile-auth {
-    margin-left: auto;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    flex-direction: row-reverse;
+  }
+
+  &__auth-button {
+    padding: $spacing-sm;
+  }
+
+  &__auth-button .p-button-label {
+    font-weight: 400;
   }
 
   // Desktop layout
@@ -82,6 +92,7 @@
       padding: $spacing-sm $spacing-xl;
       height: var(--header-height);
       box-sizing: border-box;
+      margin: $spacing-sm 0;
     }
   }
 
@@ -111,9 +122,20 @@
 
     .p-menubar {
       border-radius: 9999px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.20);
       border: 1px solid var(--color-border);
       background-color: var(--color-bg);
+      padding: $spacing-sm $spacing-lg;
+      gap: $spacing-sm;
+    }
+
+    .p-menubar-root-list {
+      display: flex;
+      gap: $spacing-md;
+    }
+
+    .p-menuitem-icon {
+      margin-right: $spacing-xs;
     }
   }
 
@@ -146,5 +168,12 @@
     color: var(--color-text);
     font-size: $font-size-base;
     white-space: nowrap;
+  }
+}
+
+[data-theme='dark'] .header {
+  &__nav .p-menubar {
+      background-color: var(--color-overlay-bg);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   }
 }

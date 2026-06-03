@@ -9,6 +9,7 @@
 @use './variables' as *;
 @use './root';
 @use './globalStyles';
+@use './primeReactOverrides';
 
 // Components (add imports here as components are built)
 @use '../components/Layout/layout';

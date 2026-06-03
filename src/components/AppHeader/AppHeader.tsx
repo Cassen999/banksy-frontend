@@ -28,6 +28,7 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
       label={user ? 'Logout' : 'Login'}
       rounded
       onClick={user ? handleLogout : handleLogin}
+      className='header__auth-button'
     />
   );
 

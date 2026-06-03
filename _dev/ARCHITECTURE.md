@@ -496,10 +496,11 @@ src/
 ├── services/              # Mutation service functions (POST/PUT/DELETE via apiClient)
 ├── utils/                 # Pure utility functions (no side effects, no React imports)
 ├── styles/                # Global and root styles only
-│   ├── index.scss         # Central SCSS entry — imports all component SCSS here
-│   ├── globalStyles.scss
-│   ├── root.scss          # CSS custom properties (:root)
-│   └── variables.scss     # SCSS variables
+│   ├── index.scss               # Central SCSS entry — imports all component SCSS here
+│   ├── globalStyles.scss        # Base resets and global element styles
+│   ├── root.scss                # CSS custom properties (:root and [data-theme='dark'])
+│   ├── variables.scss           # SCSS variables (spacing, breakpoints, etc.)
+│   └── primeReactOverrides.scss # Global PrimeReact component overrides (scoped where needed)
 ├── mocks/
 │   ├── handlers.ts        # MSW handlers grouped by domain
 │   └── server.ts          # MSW server setup (used in tests)
@@ -659,6 +660,9 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
   - Injects / swaps a `<link id="primereact-theme">` element for the PrimeReact theme CSS
 - **Our CSS custom properties:** light-mode values in `:root` (root.scss);
   dark-mode overrides in `[data-theme="dark"]` (root.scss)
+- **Dark-mode-only variables** (defined only in `[data-theme="dark"]`, no `:root` equivalent):
+  - `--color-overlay-bg` — sidebar panel background (`#383838`); components use `var(--color-overlay-bg, var(--color-bg))` to fall back to `--color-bg` in light mode
+  - `--color-divider` — PrimeReact `<Divider>` line color (`var(--blue-300)`); overridden globally in `primeReactOverrides.scss`
 
 ---
 
@@ -672,6 +676,7 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 - Maximum 2 levels of nesting
 - Keyframe animations defined at the top of the relevant SCSS file, outside any selector
 - No inline styles — use class names
+- **PrimeReact overrides:** all global PrimeReact component style overrides go in `src/styles/primeReactOverrides.scss`. Scope dark-mode overrides under `[data-theme='dark']`. Component-specific PrimeReact overrides may live in the component's own SCSS file.
 
 ---
 
