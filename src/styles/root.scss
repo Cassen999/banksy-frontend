@@ -23,6 +23,9 @@
   // Layout
   --max-width: 1280px;
   --header-height: 64px;
+
+  // Shadows
+  --shadow-float: 0 4px 20px rgba(0, 0, 0, 0.20);
 }
 
 [data-theme='dark'] {
@@ -38,4 +41,6 @@
   --color-bg-subtle: #3d3d5c;
   --color-overlay-bg: #383838;
   --color-divider: var(--blue-300);
+
+  --shadow-float: 0 4px 20px rgba(0, 0, 0, 0.6);
 }

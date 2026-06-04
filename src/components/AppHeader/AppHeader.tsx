@@ -51,15 +51,15 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
     <header className="header" role="banner">
       {/* Mobile layout — visible below desktop breakpoint */}
       <div className="header__mobile">
-        <button
-          className="header__hamburger"
+        <Button
+          icon="pi pi-bars"
+          rounded
           onClick={onSidebarToggle}
           aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={isSidebarOpen}
           aria-controls="app-sidebar"
-        >
-          <i className="pi pi-bars" aria-hidden="true" />
-        </button>
+          className="header__hamburger"
+        />
 
         <Link
           to="/"
