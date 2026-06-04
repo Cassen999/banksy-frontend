@@ -4,8 +4,20 @@
   color: var(--color-text);
 }
 
+.p-button .pi {
+  color: inherit;
+}
+
 .p-menuitem-text {
   color: var(--color-text);
+}
+
+.p-button {
+  box-shadow: var(--shadow-float);
+}
+
+.p-menubar {
+  box-shadow: var(--shadow-float);
 }
 
 .p-divider-horizontal::before {
@@ -17,10 +29,6 @@
 }
 
 [data-theme='dark'] {
-  .p-menubar {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-  }
-
   .p-divider-horizontal::before {
     border-top: 1px solid var(--color-divider);
   }
