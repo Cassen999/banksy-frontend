@@ -718,6 +718,31 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 ---
 
+## Homepage Component
+
+`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/`). Display-only — no data fetching.
+
+Reads `user` from `useAuth()` to determine logged-in state.
+
+**Mobile layout (<1024px):**
+- `div.homepage__animation` (`aria-hidden="true"`) — Lottie animation (`budget-animation.json`), `65vh`
+- `div.homepage__message` — flex-centered `h1` below animation
+  - Logged out: "Please log in to be finance guy"
+  - Logged in: "Welcome to Banksy, where dreams are dreams"
+
+**Desktop layout (≥1024px):**
+- `div.homepage` — full viewport with `stonks.png` as `background-image`
+- `div.homepage__animation` — hidden via CSS
+- `div.homepage__message` — absolutely positioned overlay, `right: 0`, `width: 30%`, `height: 100%` (covers the transparent cutout of the background image)
+  - Logged out: "Please log in to be finance guy"
+  - Logged in: "Welcome to [banksy-logo.png]"
+
+The `h1` contains two `span`s (`.homepage__desktop-welcome` and `.homepage__mobile-welcome`) toggled by CSS so there is always one `h1` in the DOM.
+
+**Dependencies:** `lottie-react`
+
+---
+
 ## Auth Architecture
 
 ### `src/contexts/AuthContext.tsx`
@@ -739,7 +764,7 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 
 | Path | Component | Description |
 |------|-----------|-------------|
-| `/` | placeholder `<p>` | Home page placeholder — to be replaced |
+| `/` | `HomepagePage` | Landing page — Lottie animation (mobile) / stonks.png background (desktop), conditional auth message |
 
 ---
 
