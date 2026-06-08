@@ -1,48 +1,37 @@
-import { useRef, useEffect } from 'react';
-import type React from 'react';
-import lottie from 'lottie-web';
 import { useAuth } from '../../contexts/AuthContext';
-import budgetAnimation from '../../assets/budget-animation.json';
 import banksyLogo from '../../assets/banksy-logo.png';
-import stonks from '../../assets/stonks.png';
+import type { MenuItem } from 'primereact/menuitem';
+import { Button } from 'primereact/button';
+
+const NAV_ITEMS: MenuItem[] = [
+  { label: 'Dashboard', icon: 'pi pi-home' },
+  { label: 'Accounts', icon: 'pi pi-wallet' },
+  { label: 'Transactions', icon: 'pi pi-list' },
+  { label: 'Reports', icon: 'pi pi-chart-bar' },
+  { label: 'Settings', icon: 'pi pi-cog' },
+];
 
 export default function HomepagePage() {
   const { user } = useAuth();
-  const animationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!animationRef.current) return;
-    const anim = lottie.loadAnimation({
-      container: animationRef.current,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      animationData: budgetAnimation,
-    });
-    return () => anim.destroy();
-  }, []);
 
   return (
-    <div className="homepage" style={{ '--stonks-bg': `url(${stonks})` } as React.CSSProperties}>
-      <div className="homepage__animation" aria-hidden="true" ref={animationRef} />
-      <div className="homepage__image" aria-hidden="true" />
-
-      <div className="homepage__message">
-        <h1>
-          {user ? (
-            <>
-              <span className="homepage__desktop-welcome">
-                Welcome to{' '}
-                <img src={banksyLogo} alt="Banksy" className="homepage__logo" />
-              </span>
-              <span className="homepage__mobile-welcome">
-                Welcome to Banksy, where dreams are dreams
-              </span>
-            </>
-          ) : (
-            'Please log in to be finance guy'
-          )}
-        </h1>
+    <div className="homepage">
+      <div className="homepage__content">
+        {user ? (
+          <>
+            <h1 className="homepage__heading">
+              Welcome to{' '}
+              <img src={banksyLogo} alt="Banksy" className="homepage__logo" />
+            </h1>
+            <nav className="homepage__nav" aria-label="Main navigation">
+              {NAV_ITEMS.map((item) => (
+                <Button key={item.label} label={item.label} icon={item.icon} />
+              ))}
+            </nav>
+          </>
+        ) : (
+          <h1>Please log in to be finance guy</h1>
+        )}
       </div>
     </div>
   );

@@ -8,10 +8,6 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock('lottie-web', () => ({
-  default: { loadAnimation: vi.fn(() => ({ destroy: vi.fn() })) },
-}));
-
 import { useAuth } from '../../contexts/AuthContext';
 
 const mockUser: iUser = {
@@ -56,6 +52,11 @@ describe('HomepagePage', () => {
       renderPage();
       expect(screen.queryByText(/welcome to/i)).not.toBeInTheDocument();
     });
+
+    it('should_notRenderNavButtons_whenLoggedOut', () => {
+      renderPage();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    });
   });
 
   describe('logged-in state', () => {
@@ -83,6 +84,16 @@ describe('HomepagePage', () => {
         screen.queryByText(/please log in to be finance guy/i),
       ).not.toBeInTheDocument();
     });
+
+    it('should_renderAllFiveNavButtons_whenLoggedIn', () => {
+      renderPage();
+      expect(screen.getAllByRole('button')).toHaveLength(5);
+    });
+
+    it('should_renderNavWithAccessibleLabel_whenLoggedIn', () => {
+      renderPage();
+      expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
+    });
   });
 
   describe('structure', () => {
@@ -97,12 +108,6 @@ describe('HomepagePage', () => {
     it('should_haveExactlyOneH1', () => {
       renderPage();
       expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    });
-
-    it('should_renderLottieWithAriaHidden', () => {
-      renderPage();
-      const animationContainer = document.querySelector('[aria-hidden="true"]');
-      expect(animationContainer).toBeInTheDocument();
     });
   });
 });

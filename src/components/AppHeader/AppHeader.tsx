@@ -99,7 +99,7 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
         <div className="header__user-section">
           {user && (
             <span className="header__welcome">
-              Welcome {user.firstName} {user.lastName}!
+              Welcome {user.firstName}!
             </span>
           )}
           {authButton}
