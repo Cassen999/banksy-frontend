@@ -3,45 +3,29 @@
 .homepage {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   height: 100%;
   width: 100%;
   min-height: 0;
 
-  &__animation {
-    flex: 0 0 65vh;
-    overflow: hidden;
-
-    > * {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  &__image {
-    display: none;
-  }
-
-  &__message {
-    flex: 1;
+  &__content {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: $spacing-lg;
+    gap: $spacing-xl;
+    padding: $spacing-xl;
+    width: 100%;
+  }
+
+  &__heading {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: clamp(1.25rem, 5vw, 2rem);
+    color: var(--color-text);
+    margin: 0;
     text-align: center;
-
-    h1 {
-      font-size: clamp(1.25rem, 5vw, 2rem);
-      color: var(--color-text);
-      margin: 0;
-    }
-  }
-
-  &__desktop-welcome {
-    display: none;
-  }
-
-  &__mobile-welcome {
-    display: inline;
   }
 
   &__logo {
@@ -49,47 +33,24 @@
     vertical-align: middle;
   }
 
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    width: 100%;
+  }
+
   @include bp('desktop') {
-    // TODO (placeholder): grid-column: 1 / -1 violates the layout column contract —
-    // HomepagePage should not override the grid established by Layout.
-    // Proper fix tracked in plans/TODOS.md under "Homepage desktop layout".
     grid-column: 1 / -1;
-    flex-direction: row;
-    min-height: calc(100vh - 70px);
 
-    &__animation {
-      display: none;
+    &__heading {
+      font-size: clamp(1rem, 2vw, 1.75rem);
     }
 
-    &__image {
-      display: block;
-      flex: 1;
-      background-image: var(--stonks-bg);
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-
-    &__message {
-      flex: 1;
-      align-items: center;
-      justify-content: center;
-      padding: $spacing-xl;
-
-      h1 {
-        font-size: clamp(1rem, 2vw, 1.75rem);
-        color: var(--color-text);
-        margin: 0;
-        text-align: center;
-      }
-    }
-
-    &__desktop-welcome {
-      display: inline;
-    }
-
-    &__mobile-welcome {
-      display: none;
+    &__nav {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      width: auto;
     }
   }
 }

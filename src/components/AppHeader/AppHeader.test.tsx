@@ -157,7 +157,7 @@ describe('AppHeader', () => {
         clearUser: mockClearUser,
       });
       renderHeader();
-      expect(screen.getByText('Welcome Test User!')).toBeInTheDocument();
+      expect(screen.getByText('Welcome Test!')).toBeInTheDocument();
     });
 
     it('should_notShowWelcomeMessage_whenUserIsNull', () => {

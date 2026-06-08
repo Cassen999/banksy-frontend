@@ -705,7 +705,7 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 ## Layout Component
 
 `src/components/Layout/Layout.tsx` is the full-app shell. It renders:
-- `AppHeader` — sticky header with responsive mobile/desktop variants
+- `AppHeader` — sticky header with responsive mobile/desktop variants. Desktop layout uses a 3-column CSS grid (`1fr auto 1fr`): brand logo (left), menubar (true center), user section (right). This keeps the menubar centered relative to the full header width regardless of logo/user-section widths.
 - `AppSidebar` — mobile-only sliding panel (hidden on desktop via CSS)
 - A full-screen backdrop overlay when the sidebar is open
 - `<main>` wrapping all page content
@@ -720,26 +720,22 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 ## Homepage Component
 
-`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/`). Display-only — no data fetching.
+`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/`). Display-only — no data fetching. No background image. No Lottie animation.
 
 Reads `user` from `useAuth()` to determine logged-in state.
 
-**Mobile layout (<1024px):**
-- `div.homepage__animation` (`aria-hidden="true"`) — Lottie animation (`budget-animation.json`), `65vh`
-- `div.homepage__message` — flex-centered `h1` below animation
-  - Logged out: "Please log in to be finance guy"
-  - Logged in: "Welcome to Banksy, where dreams are dreams"
+**Both viewports — logged out:**
+- `h1`: "Please log in to be finance guy"
 
-**Desktop layout (≥1024px):**
-- `div.homepage` — full viewport with `stonks.png` as `background-image`
-- `div.homepage__animation` — hidden via CSS
-- `div.homepage__message` — absolutely positioned overlay, `right: 0`, `width: 30%`, `height: 100%` (covers the transparent cutout of the background image)
-  - Logged out: "Please log in to be finance guy"
-  - Logged in: "Welcome to [banksy-logo.png]"
+**Mobile layout (<1024px, logged-in):**
+- `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />`
+- `nav.homepage__nav` (flex-column): 5 `<Button>` nav items — Dashboard, Accounts, Transactions, Reports, Settings
 
-The `h1` contains two `span`s (`.homepage__desktop-welcome` and `.homepage__mobile-welcome`) toggled by CSS so there is always one `h1` in the DOM.
+**Desktop layout (≥1024px, logged-in):**
+- `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />` — centered horizontally at top
+- `nav.homepage__nav` (CSS grid, 2 columns): nav buttons auto-flow into col 1: Dashboard / Transactions / Settings, col 2: Accounts / Reports
 
-**Dependencies:** `lottie-react`
+**Dependencies:** none
 
 ---
 
@@ -764,7 +760,7 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 
 | Path | Component | Description |
 |------|-----------|-------------|
-| `/` | `HomepagePage` | Landing page — Lottie animation (mobile) / stonks.png background (desktop), conditional auth message |
+| `/` | `HomepagePage` | Landing page — centered welcome heading + nav button grid (logged-in) or login prompt (logged-out) |
 
 ---
 

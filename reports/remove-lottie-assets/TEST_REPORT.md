@@ -1,4 +1,4 @@
-# Test Report — homepage
+# Test Report — remove-lottie-assets
 
 ## Summary
 
@@ -28,30 +28,29 @@ _None_
 ### Vitest Output
 
 ```
-ms
+der/AppHeader.test.tsx > AppHeader > auth button — logged in > should_navigateToLogoutUrl_whenLogoutClicked 62ms
  ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_showWelcomeMessage_whenUserIsLoggedIn 28ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_notShowWelcomeMessage_whenUserIsNull 22ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMenubarComponent 23ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_showOverlay_whenSidebarIsOpen 73ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenOverlayIsClicked 82ms
- ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMultipleLogoLinksIncludingMenubarStart 38ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenXButtonIsClicked 86ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_notShowOverlay_whenSidebarIsClosed 29ms
- ✓ src/utils/auth.test.ts > handleUnauthorized > should_redirectToOAuthEndpoint_whenCalled 5ms
+ ✓ src/services/authService.test.ts > fetchMe > should_resolveWithUser_on200 28ms
+ ✓ src/services/authService.test.ts > fetchMe > should_throw_on401 5ms
+ ✓ src/services/authService.test.ts > fetchMe > should_throw_on500 2ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenOverlayIsClicked 88ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_closeSidebar_whenXButtonIsClicked 90ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — welcome message > should_notShowWelcomeMessage_whenUserIsNull 28ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMenubarComponent 25ms
+ ✓ src/components/AppHeader/AppHeader.test.tsx > AppHeader > desktop — menubar > should_renderMultipleLogoLinksIncludingMenubarStart 41ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > sidebar state > should_notShowOverlay_whenSidebarIsClosed 32ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_lockBodyScroll_whenSidebarOpens 55ms
+ ✓ src/utils/auth.test.ts > handleUnauthorized > should_redirectToOAuthEndpoint_whenCalled 4ms
  ✓ src/utils/auth.test.ts > handleUnauthorized > should_callRegisteredClearUser_beforeRedirecting 1ms
  ✓ src/utils/auth.test.ts > handleUnauthorized > should_notThrow_whenNoClearUserIsRegistered 1ms
  ✓ src/utils/auth.test.ts > registerClearUser > should_storeFunction_thatIsCalledByHandleUnauthorized 0ms
  ✓ src/utils/auth.test.ts > registerClearUser > should_replaceExistingRegistration_whenCalledAgain 0ms
- ✓ src/services/authService.test.ts > fetchMe > should_resolveWithUser_on200 26ms
- ✓ src/services/authService.test.ts > fetchMe > should_throw_on401 3ms
- ✓ src/services/authService.test.ts > fetchMe > should_throw_on500 2ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_lockBodyScroll_whenSidebarOpens 46ms
- ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_restoreBodyScroll_whenSidebarCloses 62ms
+ ✓ src/components/Layout/Layout.test.tsx > Layout > body scroll lock > should_restoreBodyScroll_whenSidebarCloses 65ms
 
  Test Files  9 passed (9)
       Tests  80 passed (80)
-   Start at  14:54:24
-   Duration  3.31s (transform 803ms, setup 2.84s, import 1.99s, tests 3.83s, environment 9.32s)
+   Start at  13:45:17
+   Duration  3.25s (transform 611ms, setup 2.10s, import 2.39s, tests 4.14s, environment 9.25s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------

@@ -1,12 +1,4 @@
-// Global base styles and reset
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+// Global base styles
 
 html {
   font-size: 16px;
@@ -20,6 +12,7 @@ body {
   background-color: var(--color-bg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  margin: 0;
 }
 
 img {
@@ -47,6 +40,9 @@ a {
 button {
   cursor: pointer;
   font-family: inherit;
+  .p-button-label {
+    font-weight: 500
+  }
 }
 
 #root {
