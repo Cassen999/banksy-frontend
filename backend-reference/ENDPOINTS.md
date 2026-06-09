@@ -1,723 +1,474 @@
-# Banksy API — Endpoint Reference
+# Endpoints Reference
 
-All types below are written in TypeScript-style notation. Convert directly to
-`.ts` interface/type declarations.
-
----
-
-## Global Setup
-
-Every request to `/api/**` must include:
-
-```
-withCredentials: true   // sends the session cookie
-baseURL: import.meta.env.VITE_API_BASE_URL  // e.g. http://localhost:8080
-```
-
-A `401` response on any protected endpoint means the session has expired.
-Redirect the user to the login page.
-
-**Public endpoints (no session required):**
-
-- `/login`
-- `/logout`
-- `/oauth2/**`
-- `/error`
-
-All other `/api/**` endpoints require an active session.
+> **Audience:** Frontend developers consuming the Banksy API.
+> **Auth model:** Session cookie (`JSESSIONID`). After OAuth login the browser holds the cookie automatically. All endpoints under `/api/**` require it except `/api/dev/**`.
+> **Base URL (dev):** `http://localhost:8080`
+> **CORS:** Credentialed requests (`withCredentials: true`) are allowed from `localhost:3000` and `localhost:5173`.
 
 ---
 
-## Shared Types
+## Common patterns
 
-These types are referenced by multiple endpoints. Define them once.
+### Authentication
+All `/api/**` endpoints (except `/api/dev/**`) require an active session. If the session is missing or expired the server returns `302 → /oauth2/authorization/google`.
 
+### Error shape
+Endpoints that return a JSON error body use:
+```json
+{ "error": "<human-readable message>" }
 ```
-RelinkErrorType = "LOGIN_REQUIRED" | "INVALID_TOKEN"
+Endpoints that don't return a body on error return an empty `500`.
 
-RelinkSignal {
-  plaidItemId:     string          // our internal UUID for the PlaidItem row
-  institutionName: string
-  errorType:       RelinkErrorType
-  canRelink:       boolean         // true only if this user is the bank's owner
-  ownerName:       string | null   // null when canRelink is true
-  message:         string          // human-readable, safe to display directly
-}
-```
+### RelinkSignal shape
+Several endpoints embed `relinkRequired: RelinkSignal[]`. This signals that one or more bank connections need attention. The field is always present; an empty array means all banks are healthy.
 
----
-
----
-
-## Auth
-
----
-
-### GET /api/auth/me
-
-**Description:** Returns the current user's profile. Call this on app load to
-check whether the user has an active session. Returns `401` if not logged in.
-
-**Auth required:** No session needed to call, but returns `401` if unauthenticated.
-Use this as your "am I logged in?" check.
-
-**Request**
-
-```
-No body. No params. No path variables.
-```
-
-**Axios config**
-
-```
-method:          GET
-url:             /api/auth/me
-withCredentials: true
-```
-
-**Response — 200 OK**
-
-```
+```json
 {
-  id:        string   // UUID
-  email:     string
-  firstName: string
-  lastName:  string
-  username:  string
+  "plaidItemId": "uuid",
+  "institutionName": "Chase",
+  "errorType": "LOGIN_REQUIRED | INVALID_TOKEN",
+  "canRelink": true,
+  "ownerName": null,
+  "message": "Plaid authentication error, please try again."
 }
 ```
 
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-No body. Show a generic error.
+- `canRelink: true` — the current user is the owner of this item and can re-authenticate it.
+- `canRelink: false` — the item is shared; `ownerName` identifies who must fix it.
+- `errorType: "LOGIN_REQUIRED"` → use update-mode relink (`/link-token/refresh/{itemId}`).
+- `errorType: "INVALID_TOKEN"` → use full relink (`/link-token/full-relink/{itemId}`).
 
 ---
 
-### GET /logout
+## Auth / Session
 
-**Description:** Navigating the browser to this URL (via window.location.href) will invalidate the Spring session and delete the JSESSIONID cookie, then
-redirect the browser directly to http://localhost:5173. The next time the user clicks Login, Google will show the account selection screen
-rather than silently re-authenticating.
+### `GET /oauth2/authorization/google`
+Initiates the Google OAuth2 login flow. Browser redirects to Google; on success Google redirects back and the server creates a session.
 
-**Auth required:** No (permitted without a valid session).
-
-**How to call:**
-
-```ts
-window.location.href = `${import.meta.env.VITE_API_BASE_URL}/logout`;
+**Auth required:** No  
+**Call:**
+```js
+window.location.href = 'http://localhost:8080/oauth2/authorization/google';
 ```
 
-**Response:** No JSON. Browser is redirected through Google sign-out and lands at the
-frontend root URL.
+---
+
+### `GET /logout`
+Invalidates the server session and redirects the browser to the frontend URL.
+
+**Auth required:** No  
+**Call:**
+```js
+window.location.href = 'http://localhost:8080/logout';
+```
+
+> Note: This is a browser navigation, not an `axios`/`fetch` call, because the server sends a redirect response that the browser must follow.
 
 ---
+
+### `GET /api/auth/me`
+Returns the current user's profile.
+
+**Auth required:** Yes  
+**Call:**
+```js
+GET /api/auth/me
+// No body, no query params
+```
+
+**Success `200`:**
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "username": "janedoe"
+}
+```
+
+**Failures:**
+
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Unexpected server error (empty body) |
 
 ---
 
 ## Balance
 
----
+### `GET /api/balance`
+Returns live account balances for all of the current user's linked banks. Non-HEALTHY items are skipped and returned as `relinkRequired` signals instead.
 
-### GET /api/balance
-
-**Description:** Returns balances for all of the user's linked bank accounts
-that are HEALTHY and not hidden. Also returns a `relinkRequired` list for any
-linked banks that need attention (expired auth, revoked token, etc.).
-
-`relinkRequired` is always present in the response — an empty array means all
-banks are healthy. A non-empty array means at least one bank needs the user to
-take action before its data can be fetched.
-
-Hidden accounts (soft-hidden via the hide endpoint) are excluded from `accounts`
-automatically.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-No body. No params. No path variables.
+**Auth required:** Yes  
+**Call:**
+```js
+GET /api/balance
+// No body, no query params
 ```
 
-**Axios config**
-
-```
-method:          GET
-url:             /api/balance
-withCredentials: true
-```
-
-**Response — 200 OK**
-
-```
+**Success `200`:**
+```json
 {
-  accounts: Account[]
-  relinkRequired: RelinkSignal[]
-}
-
-Account {
-  name:             string
-  type:             string | null   // e.g. "depository", "credit", "investment"
-  subtype:          string | null   // e.g. "checking", "savings", "credit card"
-  currentBalance:   number | null   // in account's native currency
-  availableBalance: number | null   // null for credit / investment accounts
-  currency:         string | null   // ISO 4217 code, e.g. "USD"
+  "accounts": [
+    {
+      "name": "Plaid Checking",
+      "type": "depository",
+      "subtype": "checking",
+      "currentBalance": 1500.00,
+      "availableBalance": 1400.00,
+      "currency": "USD"
+    }
+  ],
+  "relinkRequired": []
 }
 ```
 
-**Response — 401**
+- `accounts` — only includes accounts from HEALTHY items with `hidden = false`.
+- `relinkRequired` — one entry per non-HEALTHY item the user has linked.
 
-No body. Redirect to login.
+**Failures:**
 
-**Response — 500**
-
-No body. Show a generic error.
-
----
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Unexpected server error (empty body) |
 
 ---
 
 ## Transactions
 
----
+### `GET /api/transactions`
+Returns transactions for all of the current user's linked banks. Non-HEALTHY items are skipped and returned as `relinkRequired` signals instead.
 
-### GET /api/transactions
-
-**Description:** Returns transactions for all of the user's HEALTHY, non-hidden
-linked accounts for the past N days. Also returns a `relinkRequired` list using
-the same pattern as the balance endpoint.
-
-The `days` parameter controls the lookback window. Defaults to 30 if omitted.
-Transactions are not sorted by the backend — sort on the frontend if needed.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-Query params:
-  days: number   // optional, default 30. How many days back to fetch.
+**Auth required:** Yes  
+**Call:**
+```js
+GET /api/transactions
+GET /api/transactions?days=90   // optional; defaults to 30
 ```
 
-**Axios config**
+**Query params:**
 
-```
-method:          GET
-url:             /api/transactions
-withCredentials: true
-params: {
-  days: number   // optional
-}
-```
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `days` | `int` | `30` | How many calendar days back to fetch |
 
-**Response — 200 OK**
-
-```
+**Success `200`:**
+```json
 {
-  transactions:   Transaction[]
-  total:          number          // count of transactions returned
-  relinkRequired: RelinkSignal[]
-}
-
-Transaction {
-  date:     string      // ISO date string, e.g. "2025-05-01"  (YYYY-MM-DD)
-  name:     string      // merchant or description
-  amount:   number      // positive = money left account (debit), negative = money entered (credit/refund)
-  currency: string | null  // ISO 4217 code, e.g. "USD"
-  category: string[]    // Plaid category hierarchy, e.g. ["Food and Drink", "Restaurants"]
+  "transactions": [
+    {
+      "date": "2026-05-15",
+      "name": "Starbucks",
+      "amount": 5.75,
+      "currency": "USD",
+      "category": ["Food and Drink", "Restaurants", "Coffee Shop"]
+    }
+  ],
+  "total": 1,
+  "relinkRequired": []
 }
 ```
 
-**Response — 401**
+- `amount` — positive = money leaving the account (debit); negative = money entering (credit). This is Plaid's native convention.
+- `date` — ISO-8601 date string (`YYYY-MM-DD`).
+- `category` — Plaid's hierarchical category list; may be empty.
+- `transactions` — only includes transactions from HEALTHY items with `hidden = false` accounts.
 
-No body. Redirect to login.
+**Failures:**
 
-**Response — 500**
-
-No body. Show a generic error.
-
----
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Unexpected server error (empty body) |
 
 ---
 
 ## Plaid Link
 
----
+### `GET /api/plaid/link-token`
+Creates a new Plaid Link token to start the initial bank-connection flow.
 
-### GET /api/plaid/link-token
-
-**Description:** Generates a Plaid Link token to start a new bank connection
-flow. Pass the returned `link_token` to the Plaid Link SDK to open the Link
-modal. Use this only for first-time connections — for re-linking an existing
-bank, use the refresh or full-relink endpoints instead.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-No body. No params. No path variables.
+**Auth required:** Yes  
+**Call:**
+```js
+GET /api/plaid/link-token
+// No body, no query params
 ```
 
-**Axios config**
-
-```
-method:          GET
-url:             /api/plaid/link-token
-withCredentials: true
+**Success `200`:**
+```json
+{ "link_token": "link-sandbox-..." }
 ```
 
-**Response — 200 OK**
+Pass this token to Plaid Link (`usePlaidLink({ token })`) to open the consent UI.
 
-```
-{
-  link_token: string
-}
-```
+**Failures:**
 
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-No body. Show a generic error.
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Plaid API error or unexpected server error (empty body) |
 
 ---
 
-### GET /api/plaid/link-token/refresh/:itemId
+### `GET /api/plaid/link-token/refresh/{itemId}`
+Creates an update-mode link token for a bank item whose credentials have expired (`errorType: "LOGIN_REQUIRED"`). The user re-authenticates without going through bank selection.
 
-**Description:** Generates an update-mode Plaid Link token for a bank whose
-session has expired (`errorType: "LOGIN_REQUIRED"`). Pass the returned
-`link_token` to the Plaid Link SDK. The user re-authenticates with their bank
-without needing to select an institution again.
+**Auth required:** Yes  
+**Path params:**
 
-Only the bank's owner can call this. A shared user (`canRelink: false`) cannot
-refresh — show them the `message` from the `RelinkSignal` instead.
+| Param | Type | Description |
+|-------|------|-------------|
+| `itemId` | UUID | `plaidItemId` from a `RelinkSignal` |
 
-**Auth required:** Yes (owner only — returns `403` for shared users).
-
-**Request**
-
-```
-Path variables:
-  itemId: string   // the plaidItemId from RelinkSignal — our internal UUID
+**Call:**
+```js
+GET /api/plaid/link-token/refresh/{itemId}
 ```
 
-**Axios config**
-
-```
-method:          GET
-url:             /api/plaid/link-token/refresh/:itemId
-withCredentials: true
+**Success `200`:**
+```json
+{ "link_token": "link-sandbox-..." }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  link_token: string
-}
-```
-
-**Response — 403**
-
-```
-{
-  error: string
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-```
-{
-  error: string
-}
-```
+| Status | Body | Condition |
+|--------|------|-----------|
+| `302` | — | No active session |
+| `403` | `{ "error": "..." }` | Caller is not the owner of this item |
+| `500` | `{ "error": "..." }` | Plaid API error or unexpected server error |
 
 ---
 
-### GET /api/plaid/link-token/full-relink/:itemId
+### `GET /api/plaid/link-token/full-relink/{itemId}`
+Creates a fresh link token for a bank item that must be fully re-linked (`errorType: "INVALID_TOKEN"`). Opens the full bank-selection and credential flow.
 
-**Description:** Generates a fresh Plaid Link token for a bank whose connection
-has been fully revoked (`errorType: "INVALID_TOKEN"`). The user must select their
-institution and authenticate from scratch — this is not an update-mode flow.
+**Auth required:** Yes  
+**Path params:**
 
-Only the bank's owner can call this. A shared user (`canRelink: false`) cannot
-relink — show them the `message` from the `RelinkSignal` instead.
+| Param | Type | Description |
+|-------|------|-------------|
+| `itemId` | UUID | `plaidItemId` from a `RelinkSignal` |
 
-**Auth required:** Yes (owner only — returns `403` for shared users).
-
-**Request**
-
-```
-Path variables:
-  itemId: string   // the plaidItemId from RelinkSignal — our internal UUID
+**Call:**
+```js
+GET /api/plaid/link-token/full-relink/{itemId}
 ```
 
-**Axios config**
-
-```
-method:          GET
-url:             /api/plaid/link-token/full-relink/:itemId
-withCredentials: true
+**Success `200`:**
+```json
+{ "link_token": "link-sandbox-..." }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  link_token: string
-}
-```
-
-**Response — 403**
-
-```
-{
-  error: string
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-```
-{
-  error: string
-}
-```
+| Status | Body | Condition |
+|--------|------|-----------|
+| `302` | — | No active session |
+| `403` | `{ "error": "..." }` | Caller is not the owner of this item |
+| `500` | `{ "error": "..." }` | Plaid API error or unexpected server error |
 
 ---
 
-### GET /api/plaid/status
+### `GET /api/plaid/status`
+Returns the relink status for all of the current user's linked items. Call this at login time to decide whether to show a relink banner.
 
-**Description:** Returns the relink status for all of the user's linked banks.
-Call this at login time (after `/api/auth/me` confirms the session) to check
-whether any banks need attention before the user navigates to balance or
-transactions. The response shape is the same `relinkRequired` list used by
-balance and transactions.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-No body. No params. No path variables.
+**Auth required:** Yes  
+**Call:**
+```js
+GET /api/plaid/status
 ```
 
-**Axios config**
-
-```
-method:          GET
-url:             /api/plaid/status
-withCredentials: true
-```
-
-**Response — 200 OK**
-
-```
+**Success `200`:**
+```json
 {
-  relinkRequired: RelinkSignal[]
+  "relinkRequired": []
 }
 ```
 
-**Response — 401**
+- Empty array = all items are HEALTHY.
+- Each entry in the array is a `RelinkSignal` (see top of this file).
 
-No body. Redirect to login.
+**Failures:**
 
-**Response — 500**
-
-No body. Show a generic error.
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Unexpected server error (empty body) |
 
 ---
 
-### POST /api/plaid/exchange
+### `POST /api/plaid/exchange`
+Exchanges a Plaid `public_token` (returned by the Plaid Link `onSuccess` callback) for a stored access token. Call this immediately after the user completes the Plaid Link flow.
 
-**Description:** Exchanges a Plaid `publicToken` for a stored access token after
-the user completes the Plaid Link flow. The Plaid Link SDK returns the
-`publicToken` (and institution info) in its `onSuccess` callback — pass all of
-it here.
-
-If the user just re-linked an expired item, also pass `expiredItemId`. The backend
-will migrate all shared users from the old item to the newly linked one and delete
-the old item. If this is a brand-new connection, omit `expiredItemId`.
-
-After success, refresh balance and transaction data.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-Body (JSON):
+**Auth required:** Yes  
+**Body:**
+```json
 {
-  publicToken:     string          // from Plaid Link onSuccess callback
-  institutionId:   string          // from Plaid Link onSuccess metadata.institution.id
-  institutionName: string          // from Plaid Link onSuccess metadata.institution.name
-  expiredItemId:   string | null   // our internal plaidItemId UUID — only when re-linking an expired item
+  "publicToken": "public-sandbox-...",
+  "institutionId": "ins_3",
+  "institutionName": "Chase",
+  "expiredItemId": null
 }
 ```
 
-**Axios config**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `publicToken` | `string` | Yes | Token from Plaid Link `onSuccess` |
+| `institutionId` | `string` | Yes | Institution ID from Plaid Link metadata |
+| `institutionName` | `string` | Yes | Institution name from Plaid Link metadata |
+| `expiredItemId` | UUID or `null` | No | When re-linking an INVALID_TOKEN item, pass the old `plaidItemId` so the server can migrate shared users to the new item |
 
-```
-method:          POST
-url:             /api/plaid/exchange
-withCredentials: true
-headers: {
-  Content-Type: application/json
-}
-data: {
-  publicToken:     string
-  institutionId:   string
-  institutionName: string
-  expiredItemId:   string | undefined
-}
+**Success `200`:**
+```json
+{ "status": "ok", "message": "Plaid authentication successful" }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  status:  "ok"
-  message: "Plaid authentication successful"
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-No body. Show a generic error.
+| Status | Condition |
+|--------|-----------|
+| `302` | No active session |
+| `500` | Plaid token exchange failed or unexpected server error (empty body) |
 
 ---
 
-### POST /api/plaid/share
+### `POST /api/plaid/share`
+Shares one of the current user's bank connections with another user by email. Only the item's owner can share it.
 
-**Description:** Shares one of the current user's bank connections with another
-user by email. The target user must already have an account in the system. Only
-the bank's owner can share it — shared users cannot re-share.
-
-**Auth required:** Yes (owner only — returns `403` for shared users).
-
-**Request**
-
-```
-Body (JSON):
+**Auth required:** Yes  
+**Body:**
+```json
 {
-  plaidItemId:    string   // our internal UUID of the PlaidItem to share
-  shareWithEmail: string   // email address of the user to share with
+  "plaidItemId": "uuid",
+  "shareWithEmail": "friend@example.com"
 }
 ```
 
-**Axios config**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `plaidItemId` | UUID | Yes | ID of the item to share (must be owned by the caller) |
+| `shareWithEmail` | `string` | Yes | Email of the recipient user (must already have an account) |
 
-```
-method:          POST
-url:             /api/plaid/share
-withCredentials: true
-headers: {
-  Content-Type: application/json
-}
-data: {
-  plaidItemId:    string
-  shareWithEmail: string
-}
+**Success `200`:**
+```json
+{ "status": "ok" }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  status: "ok"
-}
-```
-
-**Response — 400**
-
-```
-{
-  error: string   // e.g. user not found, already shared
-}
-```
-
-**Response — 403**
-
-```
-{
-  error: string
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-No body. Show a generic error.
-
----
+| Status | Body | Condition |
+|--------|------|-----------|
+| `302` | — | No active session |
+| `400` | `{ "error": "..." }` | Target user not found, item not found, or item already shared with that user |
+| `403` | `{ "error": "..." }` | Caller is not the owner of this item |
+| `500` | — | Unexpected server error (empty body) |
 
 ---
 
 ## Remove Bank
 
----
+### `PUT /api/plaid/account/{plaidAccountId}/hide`
+Soft-hides a single account. Hidden accounts are excluded from balance and transaction responses without removing them from Plaid. Any linked user (owner or shared) can hide an account.
 
-### PUT /api/plaid/account/:plaidAccountId/hide
+**Auth required:** Yes  
+**Path params:**
 
-**Description:** Soft-hides a single account. Hidden accounts are excluded from
-all balance and transaction responses without removing them from Plaid. The
-operation is silent to Plaid — no API call is made.
+| Param | Type | Description |
+|-------|------|-------------|
+| `plaidAccountId` | UUID | Internal ID of the account to hide (from balance/transactions data) |
 
-Any linked user (owner or shared) can hide an account. The hide applies system-
-wide — if one user hides an account, it is hidden for all users who share that
-bank connection.
-
-There is no unhide endpoint yet. Hiding is currently permanent.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-Path variables:
-  plaidAccountId: string   // our internal UUID of the PlaidAccount row
-No body.
+**Call:**
+```js
+PUT /api/plaid/account/{plaidAccountId}/hide
+// No body
 ```
 
-**Axios config**
-
-```
-method:          PUT
-url:             /api/plaid/account/:plaidAccountId/hide
-withCredentials: true
+**Success `200`:**
+```json
+{ "status": "ok" }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  status: "ok"
-}
-```
-
-**Response — 403**
-
-```
-{
-  error: string
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-```
-{
-  error: string
-}
-```
+| Status | Body | Condition |
+|--------|------|-----------|
+| `302` | — | No active session |
+| `403` | `{ "error": "..." }` | Caller is not linked to the item this account belongs to |
+| `500` | `{ "error": "..." }` | Account not found or unexpected server error |
 
 ---
 
-### DELETE /api/plaid/item/:plaidItemId
+### `DELETE /api/plaid/item/{plaidItemId}`
+Fully removes a bank item: revokes the access token at Plaid and deletes the item and all its accounts from the database. Any linked user (owner or shared) can trigger this. All previously linked users receive an in-app notification.
 
-**Description:** Fully removes a bank connection. This operation:
+**Auth required:** Yes  
+**Path params:**
 
-1. Revokes the access token at Plaid (skipped automatically if the item's status
-   is `INVALID_TOKEN` — the token is already gone from Plaid's side)
-2. Hard-deletes the `PlaidItem` and all its `PlaidAccount` rows from the database
-3. Removes the bank for every user who had it shared — all linked users lose access
+| Param | Type | Description |
+|-------|------|-------------|
+| `plaidItemId` | UUID | Internal ID of the item to remove |
 
-Any linked user (owner or shared) can trigger this deletion.
-
-After the delete, the backend sends an in-app notification to all previously linked
-users. The operation is not reversible — the user will need to re-link the bank
-from scratch if they want it back.
-
-**Auth required:** Yes.
-
-**Request**
-
-```
-Path variables:
-  plaidItemId: string   // our internal UUID of the PlaidItem row
-No body.
+**Call:**
+```js
+DELETE /api/plaid/item/{plaidItemId}
+// No body
 ```
 
-**Axios config**
-
-```
-method:          DELETE
-url:             /api/plaid/item/:plaidItemId
-withCredentials: true
+**Success `200`:**
+```json
+{ "status": "ok" }
 ```
 
-**Response — 200 OK**
+**Failures:**
 
-```
-{
-  status: "ok"
-}
-```
-
-**Response — 403**
-
-```
-{
-  error: string
-}
-```
-
-**Response — 401**
-
-No body. Redirect to login.
-
-**Response — 500**
-
-```
-{
-  error: string
-}
-```
+| Status | Body | Condition |
+|--------|------|-----------|
+| `302` | — | No active session |
+| `403` | `{ "error": "..." }` | Caller is not linked to this item |
+| `500` | `{ "error": "..." }` | Plaid revocation error or unexpected server error |
 
 ---
 
+## Dev (internal tooling — never expose to users)
+
+> These endpoints are unauthenticated and hidden by URL only. They must never be linked from any UI.
+
+### `GET /api/dev/plaid/environment`
+Returns the currently active Plaid environment.
+
+**Auth required:** No  
+**Call:**
+```
+GET /api/dev/plaid/environment
+```
+
+**Success `200`:**
+```json
+{ "environment": "sandbox" }
+```
+
+Possible values: `"sandbox"`, `"production"`.
+
 ---
 
-## Quick Reference
+### `POST /api/dev/plaid/environment/toggle`
+Toggles the Plaid environment between sandbox and production at runtime. Persists across server restarts.
 
-| Method   | Path                                        | Auth                  | Description                                             |
-| -------- | ------------------------------------------- | --------------------- | ------------------------------------------------------- |
-| `GET`    | `/api/auth/me`                              | Public                | Get current user profile / check session                |
-| `GET`    | `/logout`                                   | Public                | Full OIDC sign-out — invalidates session + Google token |
-| `GET`    | `/api/balance`                              | Required              | Get account balances + relink signals                   |
-| `GET`    | `/api/transactions`                         | Required              | Get transactions (optional `?days=N`) + relink signals  |
-| `GET`    | `/api/plaid/status`                         | Required              | Get relink signals at login                             |
-| `GET`    | `/api/plaid/link-token`                     | Required              | Get token to open new Plaid Link                        |
-| `GET`    | `/api/plaid/link-token/refresh/:itemId`     | Required (owner only) | Get token for update-mode re-auth                       |
-| `GET`    | `/api/plaid/link-token/full-relink/:itemId` | Required (owner only) | Get token for full re-link                              |
-| `POST`   | `/api/plaid/exchange`                       | Required              | Exchange public token after Link completes              |
-| `POST`   | `/api/plaid/share`                          | Required (owner only) | Share a bank with another user                          |
-| `PUT`    | `/api/plaid/account/:plaidAccountId/hide`   | Required              | Soft-hide one account                                   |
-| `DELETE` | `/api/plaid/item/:plaidItemId`              | Required              | Fully remove a bank connection                          |
+**Auth required:** No  
+**Call:**
+```
+POST /api/dev/plaid/environment/toggle
+// No body
+```
+
+**Success `200`:**
+```json
+{ "environment": "production" }
+```
+
+Returns the **new** environment after the toggle.

@@ -1,23 +1,29 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { MenuItem } from 'primereact/menuitem';
+import { Toast } from 'primereact/toast';
+import { Message } from 'primereact/message';
 import AppHeader from '../AppHeader/AppHeader';
 import AppSidebar from '../AppSidebar/AppSidebar';
+import { useNotify } from '../../contexts/NotificationContext';
 
 interface iLayoutProps {
   children: ReactNode;
 }
 
-const NAV_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', icon: 'pi pi-home' },
-  { label: 'Accounts', icon: 'pi pi-wallet' },
-  { label: 'Transactions', icon: 'pi pi-list' },
-  { label: 'Reports', icon: 'pi pi-chart-bar' },
-  { label: 'Settings', icon: 'pi pi-cog' },
-];
-
 export default function Layout({ children }: iLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const { toastRef, hideToast, showBanner, bannerConfig } = useNotify();
+
+  const NAV_ITEMS: MenuItem[] = [
+    { label: 'Dashboard', icon: 'pi pi-home' },
+    { label: 'Accounts', icon: 'pi pi-wallet', command: () => navigate('/account'), url: '/account' },
+    { label: 'Transactions', icon: 'pi pi-list' },
+    { label: 'Reports', icon: 'pi pi-chart-bar' },
+    { label: 'Settings', icon: 'pi pi-cog' },
+  ];
 
   function handleSidebarToggle() {
     setIsSidebarOpen((prev) => !prev);
@@ -47,6 +53,14 @@ export default function Layout({ children }: iLayoutProps) {
           onClick={handleSidebarClose}
           aria-hidden="true"
         />
+      )}
+
+      <Toast ref={toastRef} onHide={hideToast} />
+
+      {showBanner && bannerConfig && (
+        <div className="layout__banner">
+          <Message {...bannerConfig} />
+        </div>
       )}
 
       <main className="layout__body">{children}</main>

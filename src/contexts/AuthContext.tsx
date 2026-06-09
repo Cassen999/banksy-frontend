@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { fetchMe } from '../services/authService';
-import { registerClearUser } from '../utils/auth';
 import type { iUser } from '../types/types';
 
 interface iAuthContextValue {
@@ -21,10 +20,6 @@ export function AuthProvider({ children }: iAuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const clearUser = useCallback(() => setUser(null), []);
-
-  useEffect(() => {
-    registerClearUser(clearUser);
-  }, [clearUser]);
 
   useEffect(() => {
     fetchMe()

@@ -98,6 +98,15 @@
     i {
       font-size: $font-size-base;
     }
+
+    a {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      width: 100%;
+      color: var(--color-text);
+      text-decoration: none;
+    }
   }
 
   .p-divider-horizontal {

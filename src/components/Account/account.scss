@@ -1,0 +1,24 @@
+@use '../../styles/variables' as *;
+
+.account {
+  &__heading {
+    text-align: left;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__description {
+    text-align: left;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__actions-grid {
+    display: flex;
+    justify-content: center;
+
+    @include bp('desktop') {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      justify-items: center;
+    }
+  }
+}

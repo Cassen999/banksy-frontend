@@ -7,10 +7,6 @@ import AppHeader from './AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import type { iUser } from '../../types/types';
 
-vi.mock('../../utils/auth', () => ({
-  handleUnauthorized: vi.fn(),
-  registerClearUser: vi.fn(),
-}));
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),

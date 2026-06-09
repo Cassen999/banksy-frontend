@@ -1,12 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { server } from '../mocks/server';
 import { handlers } from '../mocks/handlers';
 import { fetchMe } from './authService';
 
-vi.mock('../utils/auth', () => ({
-  handleUnauthorized: vi.fn(),
-  registerClearUser: vi.fn(),
-}));
 
 describe('fetchMe', () => {
   it('should_resolveWithUser_on200', async () => {

@@ -30,8 +30,8 @@ withCredentials: true                              // sends the session cookie
 baseURL: import.meta.env.VITE_API_BASE_URL         // e.g. http://localhost:8080
 ```
 
-A `401` response on any protected endpoint means the session has expired. Redirect the
-user to the login page and clear all local user state.
+A missing or expired session causes the server to return `302 → /oauth2/authorization/google`.
+The browser follows the redirect automatically — no client-side 401 handling is needed.
 
 ### Public endpoints (no session required)
 
@@ -55,7 +55,7 @@ credentials or tokens — it only:
 
 ### `GET /api/auth/me`
 
-Check if the user is logged in. Returns `401` if not. Use this as the sole auth gate on app boot.
+Check if the user is logged in. Returns `302` if not. Use this as the sole auth gate on app boot — any error (including network errors from a redirected request) sets the user to `null`.
 
 **Response (200):**
 ```ts
@@ -115,7 +115,7 @@ interface iBalanceResponse {
 
 interface iAccount {
   name:             string
-  type:             string | null    // "depository" | "credit" | "investment"
+  type:             string           // "depository" | "credit" | "loan" | "investment" | "other"
   subtype:          string | null    // "checking" | "savings" | "credit card"
   currentBalance:   number | null
   availableBalance: number | null    // null for credit/investment accounts
@@ -304,11 +304,13 @@ for context when reasoning about what data is available and what relationships e
 
 ```
 users
-  ├── oauth_identities       (auth plumbing — never exposed to frontend)
-  ├── plaid_items            (one per linked bank institution)
-  │     └── plaid_accounts   (one per account within a bank, e.g. checking + savings)
-  ├── user_plaid_items       (junction — grants a user access to a shared bank)
-  └── notifications          (no API endpoint yet — populated on bank removal)
+  ├── oauth_identities            (auth plumbing — never exposed to frontend)
+  ├── plaid_items                 (one per linked bank institution)
+  │     └── plaid_accounts        (one per account within a bank, e.g. checking + savings)
+  ├── user_plaid_items            (junction — grants a user access to a shared bank)
+  └── notifications               (no API endpoint yet — populated on hide and remove operations)
+
+plaid_environment_config          (singleton row — backs dev-only environment toggle endpoints)
 ```
 
 **Key ownership rules:**
@@ -332,7 +334,7 @@ users
 
 | Status | Meaning | Frontend action |
 |--------|---------|-----------------|
-| `401` | Session expired or not logged in | Redirect to login, clear user state |
+| `302` | Session expired or not logged in | Browser follows redirect to OAuth automatically — no frontend handling needed |
 | `403` | Action not permitted (e.g. shared user trying to relink) | Show error from response body |
 | `400` | Bad request (e.g. share target not found) | Show error from response body |
 | `500` | Server error | Show a generic error message |
@@ -346,14 +348,11 @@ users
 
 Never use raw `fetch`. Never use a separately configured Axios instance.
 
-### Centralized 401 handling
+### Session expiry
 
 `src/api/client.ts` exports the single shared Axios instance (`apiClient`) and configures
-`axios-hooks` to use it. An Axios response interceptor on this instance calls
-`handleUnauthorized()` (from `src/utils/auth.ts`) on every `401` response.
-
-`handleUnauthorized()` redirects the user to the OAuth login URL and must clear any
-auth context state. Do not add 401 handling anywhere else.
+`axios-hooks` to use it. Session expiry is handled by the server — it returns `302 → /oauth2/authorization/google`
+and the browser follows the redirect automatically. No client-side interceptor is needed.
 
 ```ts
 // How hooks use axios-hooks for data fetching:
@@ -415,7 +414,7 @@ backend domain (e.g. `plaidService.ts`, `authService.ts`).
 
 - ALL `apiClient` calls live here — no other layer may call `apiClient` directly
 - Functions MUST be plain `async` — not hooks, not classes
-- 401 is handled automatically by the `apiClient` interceptor — do not re-check here
+- Session expiry (`302`) is handled automatically by the browser — do not re-check here
 - On other non-2xx responses, throw a typed error with status code and message
 
 ### Layer 5 — Types (`src/types/`)
@@ -468,7 +467,7 @@ then refresh balance and transaction data.
 - [ ] `VITE_API_BASE_URL` is set in the deployment environment — never hardcoded in source
 - [ ] `.env` files with real values are in `.gitignore` and have never been committed
 - [ ] All API calls use `withCredentials: true` (handled by `apiClient`)
-- [ ] `401` responses redirect to login globally (handled by `apiClient` interceptor)
+- [ ] Session expiry is handled server-side via `302` redirect — confirm OAuth redirect URL is correctly registered
 - [ ] Google OAuth redirect URL matches what is registered in Google Cloud Console and `application.properties`
 - [ ] CORS origin in the backend `WebConfig` matches the production frontend URL
 - [ ] No `console.log` statements in production code
@@ -484,7 +483,7 @@ src/
 ├── main.tsx               # Entry — mounts App with StrictMode, BrowserRouter, PrimeReactProvider
 ├── App.tsx                # Route definitions (default export)
 ├── api/
-│   └── client.ts          # Axios instance, axios-hooks config, 401 interceptor
+│   └── client.ts          # Axios instance, axios-hooks config
 ├── components/            # One folder per component; co-locate SCSS inside
 │   └── MyComponent/
 │       ├── MyComponent.tsx
@@ -714,7 +713,7 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 **Sidebar toggle:** The hamburger button (`☰`) in the mobile header opens the sidebar. The `×` button inside the sidebar panel closes it. Clicking the backdrop also closes it.
 
-**Context provider nesting:** Future page-level context providers (not `ThemeProvider` and not `AuthProvider`) are added *inside* the Layout's `<main>`, not in `main.tsx` or `App.tsx`.
+**Context provider nesting:** Page-level context providers go inside the Layout's `<main>`. App-wide providers (like `NotificationProvider`) that are consumed by Layout itself go in `App.tsx` alongside `AuthProvider`.
 
 ---
 
@@ -742,15 +741,49 @@ Reads `user` from `useAuth()` to determine logged-in state.
 ## Auth Architecture
 
 ### `src/contexts/AuthContext.tsx`
-Stores the current user session. Calls `authService.fetchMe()` on mount (once); any error sets user to `null`. Provides `user`, `isLoading`, and `clearUser` via `useAuth()`. Registers `clearUser` with `registerClearUser` so the Axios 401 interceptor can clear auth state without a circular import.
+Stores the current user session. Calls `authService.fetchMe()` on mount (once); any error (including network errors from a session-expired `302` redirect) sets user to `null`. Provides `user`, `isLoading`, and `clearUser` via `useAuth()`.
 
 **Placement:** `AuthProvider` wraps `<Layout>` inside `App.tsx`. It is NOT inside `main.tsx`.
 
 ### `src/services/authService.ts`
 - `fetchMe()` — `GET /api/auth/me`. Returns `iUser`. Throws on any non-2xx.
 
-### `src/utils/auth.ts` (updated)
-Added `registerClearUser(fn)` so `handleUnauthorized()` can call the AuthContext's `clearUser` before redirecting to the OAuth URL. The registered function is stored in module-level state; `AuthProvider` registers its `clearUser` on mount.
+
+---
+
+## Notification Architecture
+
+### `src/contexts/NotificationContext.tsx`
+Global notification system. Provides independent toast and banner notification state via `useNotify()`.
+
+- **Toast:** Context holds a `toastRef = useRef<Toast>(null)` and `showToast`/`toastConfig` state. Calling `triggerToast(config)` sets state and fires `toastRef.current?.show(config)` via `useEffect`. Calling `hideToast()` resets both. `Layout.tsx` attaches `toastRef` to the PrimeReact `<Toast>` component.
+- **Banner:** `triggerBanner(config)` sets `showBanner = true` and `bannerConfig`. `Layout.tsx` conditionally renders `<Message {...bannerConfig} />` centered below the header. `hideBanner()` resets both.
+- All exported values are memoized with `useMemo`.
+- Toast and banner states are fully independent.
+
+**Placement:** `NotificationProvider` wraps `<Layout>` inside `App.tsx` (alongside `AuthProvider`), because `Layout.tsx` itself calls `useNotify()` to wire up the Toast ref and banner visibility.
+
+---
+
+## Plaid Link Architecture
+
+### `src/services/plaidService.ts`
+- `fetchLinkToken()` — `GET /api/plaid/link-token`. Returns `iPlaidLinkTokenResponse`. Throws `{ status: 500 }` on server error.
+- `exchangePublicToken(body)` — `POST /api/plaid/exchange`. Returns `iPlaidExchangeResponse`. Same error handling.
+
+### `src/hooks/useLinkAccount.ts`
+Orchestrates the full Plaid bank link flow. Returns `{ isLoading, initiateLinkFlow }`.
+
+State machine:
+1. `initiateLinkFlow()` sets `isLoading = true`, calls `fetchLinkToken()`
+2. On token success, sets `linkToken` state → `usePlaidLink` from `react-plaid-link` becomes `ready`
+3. `useEffect` on `ready` calls `open()` to launch the Plaid modal
+4. `onSuccess` → calls `exchangePublicToken`, shows success toast, clears loading
+5. `onExit(error)` → shows error toast if `error` is non-null, clears loading
+6. Any service error → shows generic error toast, clears loading
+
+### `src/components/LinkAccount/LinkAccount.tsx`
+Standalone multistate button. Calls `useLinkAccount()` internally — no props required. Renders a PrimeReact `<Button>` in default state (enabled, label "Link Account") or loading state (disabled, spinner). Can be placed anywhere in the component tree.
 
 ---
 
@@ -761,6 +794,7 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 | Path | Component | Description |
 |------|-----------|-------------|
 | `/` | `HomepagePage` | Landing page — centered welcome heading + nav button grid (logged-in) or login prompt (logged-out) |
+| `/account` | `AccountPage` | Account Actions page — H1, description, and a grid of account management buttons (Link Account) |
 
 ---
 

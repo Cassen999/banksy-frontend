@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import HomepagePage from './HomepagePage';
 import type { iUser } from '../../types/types';
@@ -93,6 +94,13 @@ describe('HomepagePage', () => {
     it('should_renderNavWithAccessibleLabel_whenLoggedIn', () => {
       renderPage();
       expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
+    });
+
+    it('should_navigateToAccountsPage_whenAccountsButtonIsClicked', async () => {
+      const { container } = renderPage();
+      const accountsButton = screen.getByRole('button', { name: /accounts/i });
+      await userEvent.click(accountsButton);
+      expect(container.ownerDocument.location.pathname).toBe('/account');
     });
   });
 

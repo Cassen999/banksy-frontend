@@ -5,10 +5,6 @@ import { AuthProvider, useAuth } from '../AuthContext';
 import { server } from '../../mocks/server';
 import { handlers } from '../../mocks/handlers';
 
-vi.mock('../../utils/auth', () => ({
-  handleUnauthorized: vi.fn(),
-  registerClearUser: vi.fn(),
-}));
 
 function TestConsumer() {
   const { user, isLoading, clearUser } = useAuth();

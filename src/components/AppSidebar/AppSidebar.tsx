@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Divider } from 'primereact/divider';
 import type { MenuItem } from 'primereact/menuitem';
 import { useAuth } from '../../contexts/AuthContext';
@@ -45,9 +46,18 @@ export default function AppSidebar({ isOpen, onClose, items }: iAppSidebarProps)
       <nav className="sidebar__nav-wrapper" aria-label="Main navigation">
         <ul className="sidebar__nav">
           {items.map((item) => (
-            <li key={item.label} className="sidebar__nav-item">
-              {item.icon && <i className={item.icon} aria-hidden="true" />}
-              <span>{item.label}</span>
+            <li key={item.label} className={`sidebar__nav-item${item.url ? ' sidebar__nav-item--link' : ''}`}>
+              {item.url ? (
+                <Link to={item.url}>
+                  {item.icon && <i className={item.icon} aria-hidden="true" />}
+                  <span>{item.label}</span>
+                </Link>
+              ) : (
+                <>
+                  {item.icon && <i className={item.icon} aria-hidden="true" />}
+                  <span>{item.label}</span>
+                </>
+              )}
             </li>
           ))}
         </ul>
