@@ -176,7 +176,25 @@ const plaid = {
   },
 };
 
-export const handlers = { auth, balance, transactions, plaid };
+// --- Dev handlers (internal tooling only) ---
+//
+// !! NEVER wire these to any UI component, button, or user-facing flow.
+// !! They exist solely for terminal use (curl / scripts) and test infrastructure.
+// !! Exposing them to the user would let them accidentally switch the app to
+// !! production Plaid while thinking they're in sandbox, with real financial data.
+
+const dev = {
+  plaidEnvironment: {
+    get: http.get(`${API}/api/dev/plaid/environment`, () =>
+      HttpResponse.json({ environment: 'sandbox' }),
+    ),
+    toggle: http.post(`${API}/api/dev/plaid/environment/toggle`, () =>
+      HttpResponse.json({ environment: 'production' }),
+    ),
+  },
+};
+
+export const handlers = { auth, balance, transactions, plaid, dev };
 
 // Default handlers used by the MSW server — all happy-path success cases
 export const defaultHandlers = [

@@ -21,6 +21,13 @@
     }
   }
 
+  &__banner {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+    padding: 0 $spacing-md;
+  }
+
   &__overlay {
     position: fixed;
     inset: 0;

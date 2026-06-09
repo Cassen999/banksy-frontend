@@ -8,10 +8,6 @@ import AppSidebar from './AppSidebar';
 import { server } from '../../mocks/server';
 import { handlers } from '../../mocks/handlers';
 
-vi.mock('../../utils/auth', () => ({
-  handleUnauthorized: vi.fn(),
-  registerClearUser: vi.fn(),
-}));
 
 const NAV_ITEMS: MenuItem[] = [
   { label: 'Dashboard', icon: 'pi pi-home' },
