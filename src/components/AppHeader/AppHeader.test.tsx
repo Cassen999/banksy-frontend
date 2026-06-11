@@ -5,11 +5,20 @@ import { BrowserRouter } from 'react-router-dom';
 import type { MenuItem } from 'primereact/menuitem';
 import AppHeader from './AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { iUser } from '../../types/types';
 
+vi.mock('../../assets/banksy-logo.png', () => ({ default: 'banksy-logo.png' }));
+vi.mock('../../assets/banksy-logo-dark.png', () => ({ default: 'banksy-logo-dark.png' }));
+vi.mock('../../assets/banksy-app-logo.png', () => ({ default: 'banksy-app-logo.png' }));
+vi.mock('../../assets/banksy-app-logo-dark.png', () => ({ default: 'banksy-app-logo-dark.png' }));
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
+}));
+
+vi.mock('../../contexts/ThemeContext', () => ({
+  useTheme: vi.fn(),
 }));
 
 
@@ -52,6 +61,7 @@ describe('AppHeader', () => {
       configurable: true,
     });
     vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: false, clearUser: mockClearUser });
+    vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
     mockClearUser.mockReset();
   });
 
@@ -104,6 +114,24 @@ describe('AppHeader', () => {
       renderHeader();
       const logoLinks = screen.getAllByRole('link', { name: /banksy/i });
       expect(logoLinks.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('dark mode logos', () => {
+    it('should_useLightLogos_whenThemeIsLight', () => {
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
+      renderHeader();
+      expect(document.querySelector('.header__brand-logo')?.getAttribute('src')).toBe('banksy-logo.png');
+      expect(document.querySelector('.header__app-logo')?.getAttribute('src')).toBe('banksy-app-logo.png');
+      expect(document.querySelector('.header__menubar-logo')?.getAttribute('src')).toBe('banksy-app-logo.png');
+    });
+
+    it('should_useDarkLogos_whenThemeIsDark', () => {
+      vi.mocked(useTheme).mockReturnValue({ theme: 'dark', toggleTheme: vi.fn() });
+      renderHeader();
+      expect(document.querySelector('.header__brand-logo')?.getAttribute('src')).toBe('banksy-logo-dark.png');
+      expect(document.querySelector('.header__app-logo')?.getAttribute('src')).toBe('banksy-app-logo-dark.png');
+      expect(document.querySelector('.header__menubar-logo')?.getAttribute('src')).toBe('banksy-app-logo-dark.png');
     });
   });
 

@@ -3,8 +3,11 @@ import { Button } from 'primereact/button';
 import { Menubar } from 'primereact/menubar';
 import type { MenuItem } from 'primereact/menuitem';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import banksyLogo from '../../assets/banksy-logo.png';
+import banksyLogoDark from '../../assets/banksy-logo-dark.png';
 import banksyAppLogo from '../../assets/banksy-app-logo.png';
+import banksyAppLogoDark from '../../assets/banksy-app-logo-dark.png';
 
 interface iAppHeaderProps {
   isSidebarOpen: boolean;
@@ -14,6 +17,10 @@ interface iAppHeaderProps {
 
 export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAppHeaderProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
+
+  const logoSrc = theme === 'dark' ? banksyLogoDark : banksyLogo;
+  const appLogoSrc = theme === 'dark' ? banksyAppLogoDark : banksyAppLogo;
 
   function handleLogin() {
     window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
@@ -39,7 +46,7 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
       aria-label="Banksy — go to home page"
     >
       <img
-        src={banksyAppLogo}
+        src={appLogoSrc}
         alt=""
         aria-hidden="true"
         className="header__menubar-logo"
@@ -67,7 +74,7 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
           aria-label="Banksy — go to home page"
         >
           <img
-            src={banksyAppLogo}
+            src={appLogoSrc}
             alt=""
             aria-hidden="true"
             className="header__app-logo"
@@ -85,7 +92,7 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
           aria-label="Banksy — go to home page"
         >
           <img
-            src={banksyLogo}
+            src={logoSrc}
             alt=""
             aria-hidden="true"
             className="header__brand-logo"

@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import banksyLogo from '../../assets/banksy-logo.png';
+import banksyLogoDark from '../../assets/banksy-logo-dark.png';
 import type { MenuItem } from 'primereact/menuitem';
 import { Button } from 'primereact/button';
 
@@ -15,6 +17,9 @@ const NAV_ITEMS: MenuItem[] = [
 export default function HomepagePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+
+  const logoSrc = theme === 'dark' ? banksyLogoDark : banksyLogo;
 
   return (
     <div className="homepage">
@@ -23,7 +28,7 @@ export default function HomepagePage() {
           <>
             <h1 className="homepage__heading">
               Welcome to{' '}
-              <img src={banksyLogo} alt="Banksy" className="homepage__logo" />
+              <img src={logoSrc} alt="Banksy" className="homepage__logo" />
             </h1>
             <nav className="homepage__nav" aria-label="Main navigation">
               {NAV_ITEMS.map((item) => (
