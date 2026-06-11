@@ -48,7 +48,7 @@ export default function AppSidebar({ isOpen, onClose, items }: iAppSidebarProps)
           {items.map((item) => (
             <li key={item.label} className={`sidebar__nav-item${item.url ? ' sidebar__nav-item--link' : ''}`}>
               {item.url ? (
-                <Link to={item.url}>
+                <Link to={item.url} onClick={onClose}>
                   {item.icon && <i className={item.icon} aria-hidden="true" />}
                   <span>{item.label}</span>
                 </Link>

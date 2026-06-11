@@ -1,29 +1,78 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '../../contexts/AuthContext';
-import { NotificationProvider } from '../../contexts/NotificationContext';
 import Layout from './Layout';
+import type { iUser } from '../../types/types';
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
 
 vi.mock('../../contexts/ThemeContext', () => ({
   useTheme: vi.fn(() => ({ theme: 'light', toggleTheme: vi.fn() })),
 }));
 
+vi.mock('../../contexts/NotificationContext', () => ({
+  useNotify: vi.fn(),
+}));
+
+vi.mock('../ViewportMask/ViewportMask', () => ({
+  default: vi.fn(() => null),
+}));
+
+vi.mock('../../assets/banksy-logo.png', () => ({ default: 'banksy-logo.png' }));
+vi.mock('../../assets/banksy-logo-dark.png', () => ({ default: 'banksy-logo-dark.png' }));
+vi.mock('../../assets/banksy-app-logo.png', () => ({ default: 'banksy-app-logo.png' }));
+vi.mock('../../assets/banksy-app-logo-dark.png', () => ({ default: 'banksy-app-logo-dark.png' }));
+
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotify } from '../../contexts/NotificationContext';
+
+const MOCK_USER: iUser = {
+  id: 'user-uuid-1',
+  email: 'test@example.com',
+  firstName: 'Test',
+  lastName: 'User',
+  username: 'testuser',
+};
+
+const mockTriggerToast = vi.fn();
+
+function setupMocks(user: iUser | null = MOCK_USER) {
+  vi.mocked(useAuth).mockReturnValue({ user, isLoading: false, clearUser: vi.fn() });
+  vi.mocked(useNotify).mockReturnValue({
+    toastRef: { current: null },
+    showToast: false,
+    toastConfig: null,
+    triggerToast: mockTriggerToast,
+    hideToast: vi.fn(),
+    showBanner: false,
+    bannerConfig: null,
+    triggerBanner: vi.fn(),
+    hideBanner: vi.fn(),
+  });
+}
 
 function renderLayout(children = <p>page content</p>) {
   return render(
     <BrowserRouter>
-      <AuthProvider>
-        <NotificationProvider>
-          <Layout>{children}</Layout>
-        </NotificationProvider>
-      </AuthProvider>
+      <Layout>{children}</Layout>
     </BrowserRouter>,
   );
 }
 
 describe('Layout', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    mockTriggerToast.mockReset();
+    setupMocks();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
   describe('structure', () => {
     it('should_renderHeaderLandmark', () => {
       renderLayout();
@@ -37,9 +86,7 @@ describe('Layout', () => {
 
     it('should_renderChildrenInsideMain', () => {
       renderLayout(<p>page content</p>);
-      expect(screen.getByRole('main')).toContainElement(
-        screen.getByText('page content'),
-      );
+      expect(screen.getByRole('main')).toContainElement(screen.getByText('page content'));
     });
 
     it('should_haveOnlyOneMainLandmark', () => {
@@ -102,6 +149,73 @@ describe('Layout', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
       await userEvent.click(screen.getByRole('button', { name: 'Close menu' }));
       await waitFor(() => expect(document.body.style.overflow).toBe(''));
+    });
+  });
+
+  describe('nav items', () => {
+    it('should_haveDashboardNavItemWithCorrectUrl', () => {
+      renderLayout();
+      const sidebar = document.querySelector('.sidebar');
+      expect(sidebar?.innerHTML).toContain('/dashboard');
+    });
+
+    it('should_haveSettingsNavItemWithCorrectUrl', () => {
+      renderLayout();
+      const sidebar = document.querySelector('.sidebar');
+      expect(sidebar?.innerHTML).toContain('/settings');
+    });
+  });
+
+  describe('inert attribute', () => {
+    it('should_applyInert_whenUserIsNull', () => {
+      setupMocks(null);
+      renderLayout();
+      expect(document.querySelector('.layout')).toHaveAttribute('inert');
+    });
+
+    it('should_notApplyInert_whenUserIsPresent', () => {
+      setupMocks(MOCK_USER);
+      renderLayout();
+      expect(document.querySelector('.layout')).not.toHaveAttribute('inert');
+    });
+  });
+
+  describe('login success notification', () => {
+    it('should_triggerSuccessToast_whenFlagSetAndUserLoads', async () => {
+      sessionStorage.setItem('banksy_login_pending', '1');
+      setupMocks(MOCK_USER);
+      renderLayout();
+      await waitFor(() => {
+        expect(mockTriggerToast).toHaveBeenCalledWith({
+          severity: 'success',
+          summary: 'Login Successful',
+          detail: 'Welcome to Banksy!',
+        });
+      });
+    });
+
+    it('should_clearFlag_afterSuccessToastFires', async () => {
+      sessionStorage.setItem('banksy_login_pending', '1');
+      setupMocks(MOCK_USER);
+      renderLayout();
+      await waitFor(() => {
+        expect(sessionStorage.getItem('banksy_login_pending')).toBeNull();
+      });
+    });
+
+    it('should_notTriggerToast_whenFlagIsAbsent', async () => {
+      setupMocks(MOCK_USER);
+      renderLayout();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(mockTriggerToast).not.toHaveBeenCalled();
+    });
+
+    it('should_notTriggerToast_whenUserIsNull', async () => {
+      sessionStorage.setItem('banksy_login_pending', '1');
+      setupMocks(null);
+      renderLayout();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(mockTriggerToast).not.toHaveBeenCalled();
     });
   });
 });

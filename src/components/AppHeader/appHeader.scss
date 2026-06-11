@@ -31,35 +31,6 @@
     }
   }
 
-  &__app-logo-link {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    margin-left: $spacing-md;
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-      border-radius: $border-radius-base;
-    }
-  }
-
-  &__app-logo {
-    height: 40px;
-    width: auto;
-  }
-
-  &__mobile-auth {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    flex-direction: row-reverse;
-  }
-
-  &__auth-button {
-    padding: $spacing-sm;
-  }
-
   // Desktop layout
 
   &__desktop {
