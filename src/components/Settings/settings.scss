@@ -1,0 +1,22 @@
+@use '../../styles/variables' as *;
+
+.settings {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xl;
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xl;
+    max-width: 400px;
+    width: 100%;
+  }
+
+  &__heading {
+    font-size: var(--font-size-2xl);
+    color: var(--color-text);
+    margin: 0;
+  }
+}

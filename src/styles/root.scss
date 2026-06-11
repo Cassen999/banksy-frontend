@@ -26,6 +26,9 @@
 
   // Shadows
   --shadow-float: 0 4px 20px rgba(0, 0, 0, 0.20);
+
+  // Overlay
+  --color-mask-bg: rgba(255, 255, 255, 0.88);
 }
 
 [data-theme='dark'] {
@@ -43,4 +46,5 @@
   --color-divider: var(--blue-300);
 
   --shadow-float: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --color-mask-bg: rgba(0, 0, 0, 0.88);
 }

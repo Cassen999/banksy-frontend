@@ -22,26 +22,9 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
   const logoSrc = theme === 'dark' ? banksyLogoDark : banksyLogo;
   const appLogoSrc = theme === 'dark' ? banksyAppLogoDark : banksyAppLogo;
 
-  function handleLogin() {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
-  }
-
-  function handleLogout() {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/logout`;
-  }
-
-  const authButton = (
-    <Button
-      label={user ? 'Logout' : 'Login'}
-      rounded
-      onClick={user ? handleLogout : handleLogin}
-      className='header__auth-button'
-    />
-  );
-
   const menubarStart = (
     <Link
-      to="/"
+      to="/dashboard"
       className="header__menubar-logo-link"
       aria-label="Banksy — go to home page"
     >
@@ -67,27 +50,12 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
           aria-controls="app-sidebar"
           className="header__hamburger"
         />
-
-        <Link
-          to="/"
-          className="header__app-logo-link"
-          aria-label="Banksy — go to home page"
-        >
-          <img
-            src={appLogoSrc}
-            alt=""
-            aria-hidden="true"
-            className="header__app-logo"
-          />
-        </Link>
-
-        <div className="header__mobile-auth">{authButton}</div>
       </div>
 
       {/* Desktop layout — visible at desktop breakpoint and above */}
       <div className="header__desktop">
         <Link
-          to="/"
+          to="/dashboard"
           className="header__brand-link"
           aria-label="Banksy — go to home page"
         >
@@ -109,7 +77,6 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
               Welcome {user.firstName}!
             </span>
           )}
-          {authButton}
         </div>
       </div>
     </header>

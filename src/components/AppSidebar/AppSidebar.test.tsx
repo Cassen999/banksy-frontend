@@ -10,11 +10,11 @@ import { handlers } from '../../mocks/handlers';
 
 
 const NAV_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', icon: 'pi pi-home' },
-  { label: 'Accounts', icon: 'pi pi-wallet' },
+  { label: 'Dashboard', icon: 'pi pi-home', url: '/dashboard' },
+  { label: 'Accounts', icon: 'pi pi-wallet', url: '/account' },
   { label: 'Transactions', icon: 'pi pi-list' },
   { label: 'Reports', icon: 'pi pi-chart-bar' },
-  { label: 'Settings', icon: 'pi pi-cog' },
+  { label: 'Settings', icon: 'pi pi-cog', url: '/settings' },
 ];
 
 function renderSidebar(props?: Partial<{ isOpen: boolean; onClose: () => void }>) {
@@ -64,6 +64,13 @@ describe('AppSidebar', () => {
     const onClose = vi.fn();
     renderSidebar({ onClose });
     await userEvent.click(screen.getByRole('button', { name: 'Close menu' }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('should_callOnClose_whenNavLinkClicked', async () => {
+    const onClose = vi.fn();
+    renderSidebar({ onClose });
+    await userEvent.click(screen.getByRole('link', { name: /dashboard/i }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 

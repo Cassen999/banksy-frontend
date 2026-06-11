@@ -708,6 +708,11 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 - `AppSidebar` — mobile-only sliding panel (hidden on desktop via CSS)
 - A full-screen backdrop overlay when the sidebar is open
 - `<main>` wrapping all page content
+- `<ViewportMask />` rendered as a sibling outside the layout div (so it is never inert)
+
+**Auth gate:** The layout root div receives `inert={true}` when `user` is `null`, blocking all keyboard and pointer interaction. `ViewportMask` covers it visually with a fixed overlay. The `<Toast>` inside the layout still works when inert because PrimeReact renders it into a `document.body` portal.
+
+**Login notification:** Layout runs a `useEffect` on `[isLoading, user]`. When auth resolves with a user present and the `banksy_login_pending` sessionStorage flag is set, it fires a success toast ("Login Successful / Welcome to Banksy!") and clears the flag. This distinguishes a fresh login from a returning session.
 
 **HTML hierarchy decision (enforced globally):** `<h1>` belongs in the page body (inside `<main>`), never in the `<header>`. Every page rendered in Layout must begin with its own `<h1>`.
 
@@ -717,24 +722,57 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 ---
 
+## ViewportMask Component
+
+`src/components/ViewportMask/ViewportMask.tsx` is the global authentication gate. It renders as a sibling to the layout div (outside the inert subtree), fixed over the entire viewport.
+
+- Returns `null` immediately when `user` is present — zero render cost for authenticated sessions.
+- When `user` is `null` and `isLoading` is `true`: renders the mask with a `<ProgressSpinner>` only.
+- When `user` is `null` and `isLoading` is `false`: renders the mask with the login message and `<AuthButton>`.
+- Holds a `loginButtonRef` passed to `<AuthButton ref={loginButtonRef} />`.
+- Runs a `useEffect` on `[isLoading, user]`: if auth resolves with no user and `banksy_login_pending` is set, fires the error toast, clears the flag, and calls `loginButtonRef.current?.focus()` to return keyboard focus to the login button.
+
+**CSS:** `position: fixed; inset: 0; z-index: 1000; background: var(--color-mask-bg)`. Color is theme-aware via CSS custom properties (`rgba(255,255,255,0.88)` light / `rgba(0,0,0,0.88)` dark).
+
+---
+
+## AuthButton Component
+
+`src/components/AuthButton/AuthButton.tsx` is a reusable login/logout button used in `ViewportMask` and `SettingsPage`.
+
+- Props: none (reads `useAuth()` internally).
+- Implemented with `forwardRef<HTMLButtonElement>` so callers can hold a DOM ref (used by ViewportMask to focus the button after login failure).
+- **Login:** sets `sessionStorage['banksy_login_pending'] = '1'` then redirects to `VITE_API_BASE_URL/oauth2/authorization/google`.
+- **Logout:** redirects to `VITE_API_BASE_URL/logout` (no sessionStorage flag — logout is synchronous).
+- Renders a PrimeReact `<Button>` with `rounded` and `className="auth-button"`.
+
+---
+
 ## Homepage Component
 
-`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/`). Display-only — no data fetching. No background image. No Lottie animation.
+`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/dashboard`). Display-only — no data fetching. No background image. No Lottie animation.
 
-Reads `user` from `useAuth()` to determine logged-in state.
+Auth gating is handled globally by `ViewportMask` — this component always renders its logged-in content unconditionally.
 
-**Both viewports — logged out:**
-- `h1`: "Please log in to be finance guy"
-
-**Mobile layout (<1024px, logged-in):**
+**Mobile layout (<1024px):**
 - `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />`
 - `nav.homepage__nav` (flex-column): 5 `<Button>` nav items — Dashboard, Accounts, Transactions, Reports, Settings
 
-**Desktop layout (≥1024px, logged-in):**
+**Desktop layout (≥1024px):**
 - `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />` — centered horizontally at top
 - `nav.homepage__nav` (CSS grid, 2 columns): nav buttons auto-flow into col 1: Dashboard / Transactions / Settings, col 2: Accounts / Reports
 
-**Dependencies:** none
+**Dependencies:** `useTheme` (logo src), `useNavigate` (nav button clicks).
+
+---
+
+## Settings Component
+
+`src/components/Settings/SettingsPage.tsx` is the settings page (route `/settings`). Initial implementation — logout only.
+
+- Renders an `<h1>Settings</h1>` and an `<AuthButton />`.
+- No data fetching. No props.
+- Auth gating is handled globally by `ViewportMask`.
 
 ---
 
@@ -793,8 +831,10 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 
 | Path | Component | Description |
 |------|-----------|-------------|
-| `/` | `HomepagePage` | Landing page — centered welcome heading + nav button grid (logged-in) or login prompt (logged-out) |
+| `/` | redirect | Permanently redirects to `/dashboard` |
+| `/dashboard` | `HomepagePage` | Landing page — centered welcome heading + nav button grid |
 | `/account` | `AccountPage` | Account Actions page — H1, description, and a grid of account management buttons (Link Account) |
+| `/settings` | `SettingsPage` | Settings page — logout button (initial implementation) |
 
 ---
 

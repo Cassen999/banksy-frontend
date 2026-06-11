@@ -21,7 +21,6 @@ vi.mock('../../contexts/ThemeContext', () => ({
   useTheme: vi.fn(),
 }));
 
-
 const NAV_ITEMS: MenuItem[] = [
   { label: 'Dashboard', icon: 'pi pi-home' },
   { label: 'Accounts', icon: 'pi pi-wallet' },
@@ -38,8 +37,6 @@ const MOCK_USER: iUser = {
   username: 'testuser',
 };
 
-const mockClearUser = vi.fn();
-
 function renderHeader(props?: Partial<{ isSidebarOpen: boolean; onSidebarToggle: () => void }>) {
   const merged = { isSidebarOpen: false, onSidebarToggle: vi.fn(), ...props };
   return render(
@@ -55,29 +52,19 @@ function renderHeader(props?: Partial<{ isSidebarOpen: boolean; onSidebarToggle:
 
 describe('AppHeader', () => {
   beforeEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: { href: '' },
-      writable: true,
-      configurable: true,
-    });
-    vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: false, clearUser: mockClearUser });
+    vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: false, clearUser: vi.fn() });
     vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
-    mockClearUser.mockReset();
   });
 
   describe('hamburger button', () => {
     it('should_renderWithOpenLabel_whenClosed', () => {
       renderHeader({ isSidebarOpen: false });
-      expect(
-        screen.getByRole('button', { name: 'Open navigation menu' }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Open navigation menu' })).toBeInTheDocument();
     });
 
     it('should_renderWithCloseLabel_whenOpen', () => {
       renderHeader({ isSidebarOpen: true });
-      expect(
-        screen.getByRole('button', { name: 'Close navigation menu' }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Close navigation menu' })).toBeInTheDocument();
     });
 
     it('should_haveAriaExpandedFalse_whenClosed', () => {
@@ -109,11 +96,30 @@ describe('AppHeader', () => {
     });
   });
 
-  describe('logo links', () => {
-    it('should_renderAccessibleLogoLinks', () => {
+  describe('mobile layout', () => {
+    it('should_notRenderMobileAppLogo', () => {
+      renderHeader();
+      expect(document.querySelector('.header__app-logo')).not.toBeInTheDocument();
+    });
+
+    it('should_notRenderAuthButton', () => {
+      renderHeader();
+      expect(screen.queryByRole('button', { name: 'Login' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('desktop logo', () => {
+    it('should_renderAccessibleBrandLogoLink', () => {
       renderHeader();
       const logoLinks = screen.getAllByRole('link', { name: /banksy/i });
       expect(logoLinks.length).toBeGreaterThan(0);
+    });
+
+    it('should_renderAtLeastTwoLogoLinks', () => {
+      renderHeader();
+      const logoLinks = screen.getAllByRole('link', { name: /banksy/i });
+      expect(logoLinks.length).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -122,7 +128,6 @@ describe('AppHeader', () => {
       vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
       renderHeader();
       expect(document.querySelector('.header__brand-logo')?.getAttribute('src')).toBe('banksy-logo.png');
-      expect(document.querySelector('.header__app-logo')?.getAttribute('src')).toBe('banksy-app-logo.png');
       expect(document.querySelector('.header__menubar-logo')?.getAttribute('src')).toBe('banksy-app-logo.png');
     });
 
@@ -130,56 +135,13 @@ describe('AppHeader', () => {
       vi.mocked(useTheme).mockReturnValue({ theme: 'dark', toggleTheme: vi.fn() });
       renderHeader();
       expect(document.querySelector('.header__brand-logo')?.getAttribute('src')).toBe('banksy-logo-dark.png');
-      expect(document.querySelector('.header__app-logo')?.getAttribute('src')).toBe('banksy-app-logo-dark.png');
       expect(document.querySelector('.header__menubar-logo')?.getAttribute('src')).toBe('banksy-app-logo-dark.png');
-    });
-  });
-
-  describe('auth button — logged out', () => {
-    it('should_showLoginButtons_whenUserIsNull', () => {
-      renderHeader();
-      const buttons = screen.getAllByRole('button', { name: 'Login' });
-      expect(buttons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('should_navigateToGoogleOAuth_whenLoginButtonClicked', async () => {
-      renderHeader();
-      const [firstLoginButton] = screen.getAllByRole('button', { name: 'Login' });
-      await userEvent.click(firstLoginButton);
-      expect(window.location.href).toContain('/oauth2/authorization/google');
-    });
-  });
-
-  describe('auth button — logged in', () => {
-    beforeEach(() => {
-      vi.mocked(useAuth).mockReturnValue({
-        user: MOCK_USER,
-        isLoading: false,
-        clearUser: mockClearUser,
-      });
-    });
-
-    it('should_showLogoutButtons_whenUserIsLoggedIn', () => {
-      renderHeader();
-      const buttons = screen.getAllByRole('button', { name: 'Logout' });
-      expect(buttons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('should_navigateToLogoutUrl_whenLogoutClicked', async () => {
-      renderHeader();
-      const [firstLogoutButton] = screen.getAllByRole('button', { name: 'Logout' });
-      await userEvent.click(firstLogoutButton);
-      expect(window.location.href).toContain('/logout');
     });
   });
 
   describe('desktop — welcome message', () => {
     it('should_showWelcomeMessage_whenUserIsLoggedIn', () => {
-      vi.mocked(useAuth).mockReturnValue({
-        user: MOCK_USER,
-        isLoading: false,
-        clearUser: mockClearUser,
-      });
+      vi.mocked(useAuth).mockReturnValue({ user: MOCK_USER, isLoading: false, clearUser: vi.fn() });
       renderHeader();
       expect(screen.getByText('Welcome Test!')).toBeInTheDocument();
     });
@@ -196,10 +158,9 @@ describe('AppHeader', () => {
       expect(document.querySelector('.p-menubar')).toBeInTheDocument();
     });
 
-    it('should_renderMultipleLogoLinksIncludingMenubarStart', () => {
+    it('should_renderMenubarLogoLink', () => {
       renderHeader();
-      const logoLinks = screen.getAllByRole('link', { name: /banksy/i });
-      expect(logoLinks.length).toBeGreaterThanOrEqual(2);
+      expect(document.querySelector('.header__menubar-logo')).toBeInTheDocument();
     });
   });
 });
