@@ -1,10 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import Layout from './Layout';
+
+vi.mock('../../contexts/ThemeContext', () => ({
+  useTheme: vi.fn(() => ({ theme: 'light', toggleTheme: vi.fn() })),
+}));
 
 
 function renderLayout(children = <p>page content</p>) {

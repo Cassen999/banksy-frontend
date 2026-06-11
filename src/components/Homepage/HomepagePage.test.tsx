@@ -5,11 +5,19 @@ import { BrowserRouter } from 'react-router-dom';
 import HomepagePage from './HomepagePage';
 import type { iUser } from '../../types/types';
 
+vi.mock('../../assets/banksy-logo.png', () => ({ default: 'banksy-logo.png' }));
+vi.mock('../../assets/banksy-logo-dark.png', () => ({ default: 'banksy-logo-dark.png' }));
+
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock('../../contexts/ThemeContext', () => ({
+  useTheme: vi.fn(),
+}));
+
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const mockUser: iUser = {
   id: '1',
@@ -35,6 +43,7 @@ describe('HomepagePage', () => {
         isLoading: false,
         clearUser: vi.fn(),
       });
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
     });
 
     it('should_renderLoggedOutMessage_whenUserIsNull', () => {
@@ -67,6 +76,7 @@ describe('HomepagePage', () => {
         isLoading: false,
         clearUser: vi.fn(),
       });
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
     });
 
     it('should_renderWelcomeHeading_whenUserIsLoggedIn', () => {
@@ -104,6 +114,28 @@ describe('HomepagePage', () => {
     });
   });
 
+  describe('dark mode logo', () => {
+    beforeEach(() => {
+      (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+        user: mockUser,
+        isLoading: false,
+        clearUser: vi.fn(),
+      });
+    });
+
+    it('should_useLightLogo_whenThemeIsLight', () => {
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
+      renderPage();
+      expect(screen.getByRole('img', { name: /banksy/i }).getAttribute('src')).toBe('banksy-logo.png');
+    });
+
+    it('should_useDarkLogo_whenThemeIsDark', () => {
+      vi.mocked(useTheme).mockReturnValue({ theme: 'dark', toggleTheme: vi.fn() });
+      renderPage();
+      expect(screen.getByRole('img', { name: /banksy/i }).getAttribute('src')).toBe('banksy-logo-dark.png');
+    });
+  });
+
   describe('structure', () => {
     beforeEach(() => {
       (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -111,6 +143,7 @@ describe('HomepagePage', () => {
         isLoading: false,
         clearUser: vi.fn(),
       });
+      vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
     });
 
     it('should_haveExactlyOneH1', () => {
