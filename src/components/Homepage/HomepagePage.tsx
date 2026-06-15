@@ -1,42 +1,9 @@
-import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../../contexts/ThemeContext';
-import banksyLogo from '../../assets/banksy-logo.png';
-import banksyLogoDark from '../../assets/banksy-logo-dark.png';
-import type { MenuItem } from 'primereact/menuitem';
-import { Button } from 'primereact/button';
-
-const NAV_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', icon: 'pi pi-home' },
-  { label: 'Accounts', icon: 'pi pi-wallet', url: '/account' },
-  { label: 'Transactions', icon: 'pi pi-list' },
-  { label: 'Reports', icon: 'pi pi-chart-bar' },
-  { label: 'Settings', icon: 'pi pi-cog', url: '/settings' },
-];
-
 export default function HomepagePage() {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-
-  const logoSrc = theme === 'dark' ? banksyLogoDark : banksyLogo;
-
   return (
-    <div className="homepage">
-      <div className="homepage__content">
-        <h1 className="homepage__heading">
-          Welcome to{' '}
-          <img src={logoSrc} alt="Banksy" className="homepage__logo" />
-        </h1>
-        <nav className="homepage__nav" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
-            <Button
-              key={item.label}
-              label={item.label}
-              icon={item.icon}
-              onClick={item.url ? () => navigate(item.url!) : undefined}
-            />
-          ))}
-        </nav>
-      </div>
+    <div className="dashboard">
+      <section className="dashboard__graph" aria-label="Spending trend graph" />
+      <div className="dashboard__next-deposit" role="region" aria-label="Next scheduled deposit" />
+      <section className="dashboard__accounts" aria-label="Account overview" />
     </div>
   );
 }

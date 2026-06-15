@@ -1,229 +1,200 @@
-# Database Schema Reference
+# Database Schema
 
-> **Audience:** Frontend developers who need to understand the data model behind the Banksy API.
-> This document is a read-only reference — the database is owned by the backend. You will never interact with these tables directly; this is context for understanding what the API returns and why.
-
----
-
-## Entity-Relationship Diagram
-
-```
-┌──────────────────┐        ┌───────────────────────┐
-│      users       │        │    oauth_identities   │
-├──────────────────┤        ├───────────────────────┤
-│ id (PK)          │◄───────│ user_id (FK)          │
-│ first_name       │  1:N   │ id (PK)               │
-│ last_name        │        │ provider              │
-│ username (UQ)    │        │ provider_user_id      │
-│ email (UQ)       │        │ created_at            │
-│ created_at       │        └───────────────────────┘
-│ updated_at       │
-└────────┬─────────┘
-         │
-         │  M:N via user_plaid_items
-         │
-         ▼
-┌──────────────────────┐       ┌───────────────────────┐
-│   user_plaid_items   │       │    notifications      │
-├──────────────────────┤       ├───────────────────────┤
-│ user_id (FK, PK)     │       │ id (PK)               │
-│ plaid_item_id (FK,PK)│       │ user_id (FK)          │
-│ added_at             │       │ message               │
-└──────────┬───────────┘       │ created_at            │
-           │                   │ read                  │
-           │                   └───────────────────────┘
-           ▼
-┌───────────────────────────┐
-│        plaid_items        │
-├───────────────────────────┤
-│ id (PK)                   │◄──── owner_user_id (FK → users)
-│ access_token_enc          │
-│ item_id (UQ)              │
-│ institution_id            │
-│ institution_name          │
-│ transaction_cursor        │
-│ owner_user_id (FK)        │
-│ status                    │
-│ created_at                │
-│ updated_at                │
-└─────────────┬─────────────┘
-              │ 1:N
-              ▼
-┌─────────────────────────────┐
-│       plaid_accounts        │
-├─────────────────────────────┤
-│ id (PK)                     │
-│ plaid_item_id (FK)          │
-│ plaid_account_id (UQ)       │
-│ name                        │
-│ official_name               │
-│ type                        │
-│ subtype                     │
-│ mask                        │
-│ hidden                      │
-│ created_at                  │
-└─────────────────────────────┘
-
-┌────────────────────────────┐
-│  plaid_environment_config  │  ← singleton config row (id=1 always)
-├────────────────────────────┤
-│ id (PK, SERIAL)            │
-│ env                        │
-│ updated_at                 │
-└────────────────────────────┘
-```
+PostgreSQL database managed by Flyway. Migrations live in `src/main/resources/db/migration/`. Never modify an already-applied migration — add a new one instead.
 
 ---
 
 ## Tables
 
----
-
 ### `users`
-The application's user accounts. Created automatically on first Google login.
+*Migration: V1*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `UUID` | PK, default `gen_random_uuid()` | Internal user identifier |
-| `first_name` | `VARCHAR(100)` | NOT NULL | Given name (from Google profile) |
-| `last_name` | `VARCHAR(100)` | NOT NULL | Family name (from Google profile) |
-| `username` | `VARCHAR(50)` | NOT NULL, UNIQUE | Derived from email local part |
-| `email` | `VARCHAR(255)` | NOT NULL, UNIQUE | Google account email |
-| `created_at` | `TIMESTAMP` | NOT NULL, default `NOW()` | Account creation time |
-| `updated_at` | `TIMESTAMP` | NOT NULL, default `NOW()` | Last profile update time |
-
-**What the API surfaces from this table:**  
-`GET /api/auth/me` returns `id`, `email`, `firstName`, `lastName`, `username`.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `first_name` | VARCHAR(100) | NOT NULL | |
+| `last_name` | VARCHAR(100) | NOT NULL | |
+| `username` | VARCHAR(50) | NOT NULL, UNIQUE | |
+| `email` | VARCHAR(255) | NOT NULL, UNIQUE | |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+| `updated_at` | TIMESTAMP | NOT NULL, default NOW() | |
 
 ---
 
 ### `oauth_identities`
-Links a user account to a specific OAuth provider identity. Supports multiple providers per user (currently only Google).
+*Migration: V1*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `UUID` | PK | Identity record identifier |
-| `user_id` | `UUID` | NOT NULL, FK → `users.id` (CASCADE) | The app user this identity belongs to |
-| `provider` | `VARCHAR(50)` | NOT NULL | OAuth provider name (e.g. `"google"`) |
-| `provider_user_id` | `VARCHAR(255)` | NOT NULL | Provider's own identifier for this account |
-| `created_at` | `TIMESTAMP` | NOT NULL | When this identity was first linked |
+Links a `User` to a specific OAuth provider identity (e.g. Google). One user can have multiple identities.
 
-**Unique constraint:** `(provider, provider_user_id)` — prevents duplicate identities.  
-**What the API surfaces:** Nothing directly; used internally to match returning OAuth logins to existing users.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `provider` | VARCHAR(50) | NOT NULL | e.g. `"google"` |
+| `provider_user_id` | VARCHAR(255) | NOT NULL | Provider's own user ID |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+
+**Unique constraint:** `(provider, provider_user_id)`
+
+**Indexes:** `idx_oauth_identities_user_id` on `user_id`
 
 ---
 
 ### `plaid_items`
-Represents a connected bank institution. One item = one bank login, which may have multiple accounts underneath it. Items are created when a user completes the Plaid Link flow.
+*Migrations: V1, V2*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `UUID` | PK | Internal item identifier — this is the `plaidItemId` used in API calls |
-| `access_token_enc` | `TEXT` | NOT NULL | AES-256-GCM encrypted Plaid access token |
-| `item_id` | `VARCHAR(255)` | NOT NULL, UNIQUE | Plaid's own item identifier |
-| `institution_id` | `VARCHAR(255)` | NOT NULL | Plaid institution ID (e.g. `"ins_3"`) |
-| `institution_name` | `VARCHAR(255)` | NOT NULL | Human-readable bank name (e.g. `"Chase"`) |
-| `transaction_cursor` | `TEXT` | nullable | Plaid transaction sync cursor for incremental fetches |
-| `owner_user_id` | `UUID` | NOT NULL, FK → `users.id` | The user who originally linked this bank |
-| `status` | `VARCHAR(20)` | NOT NULL, default `'HEALTHY'` | Health state — see values below |
-| `created_at` | `TIMESTAMP` | NOT NULL | When the item was first linked |
-| `updated_at` | `TIMESTAMP` | NOT NULL | Last modification time |
+A connected bank institution. Stores the AES-GCM-encrypted Plaid access token and current health status.
 
-**`status` values:**
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `access_token_enc` | TEXT | NOT NULL | AES-256-GCM encrypted Plaid access token |
+| `item_id` | VARCHAR(255) | NOT NULL, UNIQUE | Plaid-assigned item ID |
+| `institution_id` | VARCHAR(255) | NOT NULL | Plaid institution ID |
+| `institution_name` | VARCHAR(255) | NOT NULL | Human-readable institution name |
+| `transaction_cursor` | TEXT | nullable | Plaid transaction pagination cursor |
+| `owner_user_id` | UUID | NOT NULL, FK → `users(id)` | *(added V2)* The user who originally linked this item |
+| `status` | VARCHAR(20) | NOT NULL, default `'HEALTHY'` | *(added V2)* `HEALTHY`, `NEEDS_REAUTH`, or `INVALID_TOKEN` |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+| `updated_at` | TIMESTAMP | NOT NULL, default NOW() | |
 
-| Value | Meaning | Action required |
-|-------|---------|-----------------|
-| `HEALTHY` | Token is valid; data calls succeed | None |
-| `NEEDS_REAUTH` | Credentials expired (Plaid `ITEM_LOGIN_REQUIRED`) | Re-authenticate via `GET /api/plaid/link-token/refresh/{itemId}` |
-| `INVALID_TOKEN` | Item revoked/deleted at Plaid (`INVALID_ACCESS_TOKEN`) | Full re-link via `GET /api/plaid/link-token/full-relink/{itemId}` |
-
-**Sharing model:** An item can be shared with other users via `user_plaid_items`. The `owner_user_id` column identifies who originally linked it — only the owner can re-authenticate it.
+**Indexes:** `idx_plaid_items_owner_user_id` on `owner_user_id`
 
 ---
 
 ### `plaid_accounts`
-Individual bank accounts within a `plaid_items` connection (e.g. a checking account and a savings account at the same bank are two rows here under the same item).
+*Migrations: V1, V4*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `UUID` | PK | Internal account identifier |
-| `plaid_item_id` | `UUID` | NOT NULL, FK → `plaid_items.id` (CASCADE) | The parent bank item |
-| `plaid_account_id` | `VARCHAR(255)` | NOT NULL, UNIQUE | Plaid's own account identifier |
-| `name` | `VARCHAR(255)` | NOT NULL | Account display name (e.g. `"Plaid Checking"`) |
-| `official_name` | `VARCHAR(255)` | nullable | Bank's official product name (e.g. `"Plaid Gold Standard 0% Interest Checking"`) |
-| `type` | `VARCHAR(50)` | NOT NULL | Plaid account type: `depository`, `credit`, `loan`, `investment`, `other` |
-| `subtype` | `VARCHAR(50)` | nullable | Plaid account subtype: `checking`, `savings`, `credit card`, etc. |
-| `mask` | `VARCHAR(4)` | nullable | Last 4 digits of the account number |
-| `hidden` | `BOOLEAN` | NOT NULL, default `FALSE` | When `true`, this account is excluded from balance and transaction API responses |
-| `created_at` | `TIMESTAMP` | NOT NULL | When the account record was created |
+An individual bank account within a `PlaidItem` (e.g. checking or savings).
 
-**What the API surfaces from this table:**  
-Balance and transaction responses include only accounts where `hidden = false`. The `id` field appears as the identifier used when hiding an account via `PUT /api/plaid/account/{plaidAccountId}/hide`.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `plaid_item_id` | UUID | NOT NULL, FK → `plaid_items(id)` ON DELETE CASCADE | |
+| `plaid_account_id` | VARCHAR(255) | NOT NULL, UNIQUE | Plaid-assigned account ID string |
+| `name` | VARCHAR(255) | NOT NULL | |
+| `official_name` | VARCHAR(255) | nullable | |
+| `type` | VARCHAR(50) | NOT NULL | e.g. `depository`, `credit` |
+| `subtype` | VARCHAR(50) | nullable | e.g. `checking`, `savings` |
+| `mask` | VARCHAR(4) | nullable | Last 4 digits of account number |
+| `hidden` | BOOLEAN | NOT NULL, default `false` | *(added V4)* Soft-hide flag; hidden accounts are excluded from all API responses |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+
+**Indexes:** `idx_plaid_accounts_item_id` on `plaid_item_id`
 
 ---
 
 ### `user_plaid_items`
-Join table for the many-to-many relationship between users and plaid items. A row here means a user can see and use that bank connection.
+*Migration: V1*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `user_id` | `UUID` | PK, FK → `users.id` (CASCADE) | The user |
-| `plaid_item_id` | `UUID` | PK, FK → `plaid_items.id` (CASCADE) | The bank item |
-| `added_at` | `TIMESTAMP` | NOT NULL | When the link was created |
+Many-to-many join table linking users to shared Plaid items.
 
-**Composite PK:** `(user_id, plaid_item_id)`.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `plaid_item_id` | UUID | NOT NULL, FK → `plaid_items(id)` ON DELETE CASCADE | |
+| `added_at` | TIMESTAMP | NOT NULL, default NOW() | |
 
-**Rows are created in two ways:**
-1. When a user links a bank themselves — `POST /api/plaid/exchange`.
-2. When an owner shares a bank with another user — `POST /api/plaid/share`.
+**Primary key:** `(user_id, plaid_item_id)`
+
+**Indexes:** `idx_user_plaid_items_user_id`, `idx_user_plaid_items_plaid_item_id`
 
 ---
 
 ### `notifications`
-In-app notifications for a user. Currently generated by the server after hide/remove operations to inform all linked users of the outcome.
+*Migration: V3*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `UUID` | PK | Notification identifier |
-| `user_id` | `UUID` | NOT NULL, FK → `users.id` (CASCADE) | Recipient user |
-| `message` | `TEXT` | NOT NULL | Human-readable notification body |
-| `created_at` | `TIMESTAMP` | NOT NULL | When the notification was created |
-| `read` | `BOOLEAN` | NOT NULL, default `FALSE` | Whether the user has read this notification |
+In-app notifications for users, created after remove-bank operations.
 
-**Note:** There is currently no API endpoint to fetch or mark notifications as read. This table is written to by the backend but not yet surfaced to the frontend.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `message` | TEXT | NOT NULL | |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+| `read` | BOOLEAN | NOT NULL, default `false` | |
+
+**Indexes:** `idx_notifications_user_id` on `user_id`
 
 ---
 
 ### `plaid_environment_config`
-Singleton configuration table for the active Plaid environment. Always contains exactly one row (`id = 1`).
+*Migration: V5*
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | `SERIAL` | PK | Always `1` |
-| `env` | `VARCHAR(20)` | NOT NULL, default `'sandbox'` | Active environment: `'sandbox'` or `'production'` |
-| `updated_at` | `TIMESTAMPTZ` | NOT NULL | When the environment was last toggled |
+Single-row config table (always id=1). Controls which Plaid environment (sandbox vs production) the app uses.
 
-**What the API surfaces:** `GET /api/dev/plaid/environment` and `POST /api/dev/plaid/environment/toggle`. Not visible to end users.
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | SERIAL | PK | Always 1 |
+| `env` | VARCHAR(20) | NOT NULL, default `'sandbox'` | `sandbox` or `production` |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, default now() | |
+
+**Seeded by V5** with `env = 'sandbox'`.
 
 ---
 
-## Key Relationships Summary
+### `user_rejected_categories`
+*Migration: V6*
+
+Per-user list of Plaid PFCv2 category strings to exclude from monthly-glance aggregation. Extends the hardcoded default set in `MonthlyGlanceService`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `category` | VARCHAR(255) | NOT NULL | Primary or detailed Plaid PFCv2 value, e.g. `"PERSONAL_CARE"` or `"FOOD_AND_DRINK_COFFEE"` |
+| `created_at` | TIMESTAMP | NOT NULL, default now() | |
+
+**Unique constraint:** `(user_id, category)`
+
+---
+
+### `user_excluded_accounts`
+*Migration: V7*
+
+Per-user list of Plaid account ID strings to exclude from monthly-glance aggregation.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `plaid_account_id` | VARCHAR(255) | NOT NULL | Plaid-assigned account ID string (matches `plaid_accounts.plaid_account_id`) |
+| `created_at` | TIMESTAMP | NOT NULL, default now() | |
+
+**Unique constraint:** `(user_id, plaid_account_id)`
+
+---
+
+### `plaid_categories`
+*Migration: V8*
+
+Read-only lookup table of all 146 Plaid PFCv2 taxonomy entries (18 primary + 128 detailed). Seeded once at migration time; never written at runtime.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `category` | VARCHAR(255) | PK | The taxonomy string itself, e.g. `"FOOD_AND_DRINK"` or `"FOOD_AND_DRINK_COFFEE"` |
+| `category_type` | VARCHAR(8) | NOT NULL | `PRIMARY` or `DETAILED` |
+| `primary_category` | VARCHAR(255) | nullable | Null for primary-level rows; the parent primary string for detailed rows |
+
+**Seeded by V8** with all 146 PFCv2 entries across 18 primary groups: INCOME, LOAN_DISBURSEMENTS, LOAN_PAYMENTS, TRANSFER_IN, TRANSFER_OUT, BANK_FEES, ENTERTAINMENT, FOOD_AND_DRINK, GENERAL_MERCHANDISE, HOME_IMPROVEMENT, MEDICAL, PERSONAL_CARE, GENERAL_SERVICES, GOVERNMENT_AND_NON_PROFIT, TRANSPORTATION, TRAVEL, RENT_AND_UTILITIES, OTHER.
+
+---
+
+## Entity Relationship Summary
 
 ```
-users (1) ──────────────── (N) oauth_identities
-  │                                   (login matching)
-  │
-  ├── (owner) ────────── (N) plaid_items
-  │                            │
-  │                            └── (1) ──── (N) plaid_accounts
-  │
-  └── (M:N via user_plaid_items) ──── plaid_items
-                                           (shared access)
+users
+  ├── oauth_identities   (1:many, ON DELETE CASCADE)
+  ├── user_plaid_items   (many:many join to plaid_items)
+  ├── notifications      (1:many, ON DELETE CASCADE)
+  ├── user_rejected_categories  (1:many, ON DELETE CASCADE)
+  └── user_excluded_accounts    (1:many, ON DELETE CASCADE)
 
-users (1) ──────────────── (N) notifications
+plaid_items
+  ├── plaid_accounts     (1:many, ON DELETE CASCADE)
+  └── user_plaid_items   (many:many join to users)
+
+plaid_environment_config  (singleton config, id=1)
+
+plaid_categories          (read-only taxonomy, 146 rows)
 ```
-
-- A user can **own** many items and be **shared on** many items.
-- Owning vs. sharing determines who can re-authenticate when a token expires.
-- Hiding an account (`hidden = true`) is per-account, not per-item; any linked user can hide.
-- Removing an item (`DELETE /api/plaid/item/{id}`) cascades: deletes the item, all its accounts, and all `user_plaid_items` rows, then notifies every previously linked user.
