@@ -14,7 +14,7 @@
   &__mobile {
     display: flex;
     align-items: center;
-    padding: $spacing-sm $spacing-md;
+    padding: $spacing-sm $spacing-md 0;
     height: var(--header-height);
     box-sizing: border-box;
 

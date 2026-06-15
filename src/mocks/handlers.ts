@@ -176,6 +176,26 @@ const plaid = {
   },
 };
 
+// --- Monthly Glance handlers ---
+
+const mockMonthlyGlance = {
+  dailyTotals: [
+    { transactionDate: '2026-06-01', total: 10.0 },
+    { transactionDate: '2026-06-02', total: 25.0 },
+    { transactionDate: '2026-06-03', total: 15.0 },
+  ],
+  relinkRequired: [],
+};
+
+const monthlyGlance = {
+  success: http.get(`${API}/api/monthly-glance`, () =>
+    HttpResponse.json(mockMonthlyGlance),
+  ),
+  serverError: http.get(`${API}/api/monthly-glance`, () =>
+    new HttpResponse(null, { status: 500 }),
+  ),
+};
+
 // --- Dev handlers (internal tooling only) ---
 //
 // !! NEVER wire these to any UI component, button, or user-facing flow.
@@ -194,7 +214,7 @@ const dev = {
   },
 };
 
-export const handlers = { auth, balance, transactions, plaid, dev };
+export const handlers = { auth, balance, transactions, plaid, monthlyGlance, dev };
 
 // Default handlers used by the MSW server — all happy-path success cases
 export const defaultHandlers = [
@@ -209,4 +229,5 @@ export const defaultHandlers = [
   handlers.plaid.share.success,
   handlers.plaid.hideAccount.success,
   handlers.plaid.removeItem.success,
+  handlers.monthlyGlance.success,
 ];

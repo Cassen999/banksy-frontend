@@ -9,7 +9,7 @@
 
   &__body {
     flex: 1;
-    padding: $spacing-md;
+    padding: 0 $spacing-md $spacing-md;
     padding-bottom: max(env(safe-area-inset-bottom), $spacing-md);
 
     @include bp('desktop') {

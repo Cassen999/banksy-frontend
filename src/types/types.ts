@@ -21,3 +21,19 @@ export interface iPlaidExchangeResponse {
   status: 'ok';
   message: string;
 }
+
+export interface iMonthlyGlanceDailyTotal {
+  transactionDate: string;
+  total: number;
+}
+
+export interface iMonthlyGlanceResponse {
+  dailyTotals: iMonthlyGlanceDailyTotal[];
+  relinkRequired: unknown[];
+}
+
+export interface iMonthlyGlanceDataPoint {
+  date: string;
+  cumulative: number;
+  daily: number;
+}

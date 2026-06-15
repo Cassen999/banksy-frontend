@@ -17,8 +17,8 @@
   &__graph {
     height: calc((100vh - var(--header-height)) * 0.25);
     flex-shrink: 0;
-    background-color: var(--color-bg-subtle);
     border-radius: $border-radius-base;
+    overflow: hidden;
 
     @include bp('desktop') {
       height: auto;

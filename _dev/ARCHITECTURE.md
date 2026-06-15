@@ -825,6 +825,41 @@ Standalone multistate button. Calls `useLinkAccount()` internally — no props r
 
 ---
 
+## Monthly Glance Architecture
+
+### Types (`src/types/types.ts`)
+- `iMonthlyGlanceDailyTotal` — `{ transactionDate: string; total: number }` — one day's raw spending total as returned by the API.
+- `iMonthlyGlanceResponse` — `{ dailyTotals: iMonthlyGlanceDailyTotal[]; relinkRequired: unknown[] }` — full API response shape.
+- `iMonthlyGlanceDataPoint` — `{ date: string; cumulative: number; daily: number }` — post-transformation shape used by the chart; `cumulative` is the running total up to that day.
+
+### `src/services/monthlyGlanceService.ts`
+- `fetchMonthlyGlance()` — `GET /api/monthly-glance`. Returns `iMonthlyGlanceResponse`. Backend delivers pre-filtered data; no client-side category filtering needed.
+
+### `src/hooks/useMonthlyGlance.ts`
+Returns `{ status, data, retry }`. Status is `'idle' | 'loading' | 'error' | 'success'`.
+
+- Guards: does not call the service unless `user` (from `useAuth()`) is non-null.
+- Transforms `dailyTotals` into a cumulative series via the internal `toCumulative()` helper — each point's `cumulative` is the sum of all `total` values up to and including that day.
+- Internal status is `'idle' | 'error' | 'success'`; `'loading'` is derived: when `user` is non-null and internal status is `'idle'`, the public status is `'loading'`.
+- `retry()` resets internal status to `'idle'` and increments a `fetchCount` counter, which triggers the `useEffect` to re-fetch.
+- On error, fires `triggerToast` with severity `'error'`.
+
+### `src/components/MonthlyGlance/MonthlyGlance.tsx`
+Dashboard graph panel. No props.
+
+States:
+- **Auth loading / no user**: renders PrimeReact `<Skeleton />` filling the section; does not invoke `useMonthlyGlance`.
+- **Loading**: opaque mask overlay + PrimeReact `<ProgressSpinner />`.
+- **Error**: opaque mask overlay + retry button (`pi-undo` icon + "Retry" label); clicking calls `retry()`.
+- **Success**: renders `<Line />` from `react-chartjs-2` with cumulative spending data.
+
+Chart details:
+- Split background (teal below / red above budget line) drawn via an inline Chart.js `beforeDraw` plugin. CSS custom properties are resolved at draw time via `getComputedStyle` because canvas context does not support them natively.
+- Budget is a hardcoded local constant (`const budget: number = 2000`) pending integration with the user object.
+- Tooltip mode switches between hover (desktop, ≥ 1024 px) and click (mobile, < 1024 px) by toggling Chart.js `events` based on `window.innerWidth` at render time.
+
+---
+
 ## Routing Table
 
 Routes are defined in `src/App.tsx`. Update this table whenever a route is added or removed.
