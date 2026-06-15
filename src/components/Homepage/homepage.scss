@@ -1,56 +1,59 @@
 @use '../../styles/variables' as *;
 
-.homepage {
+.dashboard {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-
-  &__content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: $spacing-xl;
-    padding: $spacing-xl;
-    width: 100%;
-  }
-
-  &__heading {
-    display: inline-flex;
-    align-items: center;
-    gap: $spacing-sm;
-    font-size: clamp(1.25rem, 5vw, 2rem);
-    color: var(--color-text);
-    margin: 0;
-    text-align: center;
-  }
-
-  &__logo {
-    height: 1.2em;
-    vertical-align: middle;
-  }
-
-  &__nav {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
-    width: 100%;
-  }
+  height: calc(100vh - var(--header-height));
 
   @include bp('desktop') {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 40% 1fr;
+    grid-template-rows: 60% 40%;
+    height: calc(100vh - var(--header-height) - #{$spacing-xl * 2});
+    gap: $spacing-lg;
+  }
 
-    &__heading {
-      font-size: clamp(1rem, 2vw, 1.75rem);
+  &__graph {
+    height: calc((100vh - var(--header-height)) * 0.25);
+    flex-shrink: 0;
+    background-color: var(--color-bg-subtle);
+    border-radius: $border-radius-base;
+
+    @include bp('desktop') {
+      height: auto;
+      grid-column: 1;
+      grid-row: 1;
     }
+  }
 
-    &__nav {
-      display: grid;
-      grid-template-columns: repeat(2, auto);
-      width: auto;
+  &__next-deposit {
+    flex-shrink: 0;
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    box-sizing: border-box;
+    background-color: var(--color-bg-subtle);
+    border-radius: $border-radius-base;
+    margin: $spacing-md 0;
+
+    @include bp('desktop') {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: auto;
+      margin: 0;
+    }
+  }
+
+  &__accounts {
+    flex: 1;
+    background-color: var(--color-bg-subtle);
+    border-radius: $border-radius-base;
+    min-height: 0;
+
+    @include bp('desktop') {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      flex: none;
     }
   }
 }
