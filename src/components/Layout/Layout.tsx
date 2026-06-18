@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { MenuItem } from 'primereact/menuitem';
 import { Toast } from 'primereact/toast';
@@ -14,9 +14,17 @@ interface iLayoutProps {
   children: ReactNode;
 }
 
+const PAGE_NAMES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/account': 'Account',
+  '/settings': 'Settings',
+};
+
 export default function Layout({ children }: iLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const pageName = PAGE_NAMES[location.pathname] ?? '';
   const { user, isLoading } = useAuth();
   const { toastRef, hideToast, showBanner, bannerConfig, triggerToast } = useNotify();
 
@@ -53,6 +61,7 @@ export default function Layout({ children }: iLayoutProps) {
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={handleSidebarToggle}
           items={NAV_ITEMS}
+          pageName={pageName}
         />
 
         <AppSidebar

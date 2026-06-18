@@ -37,3 +37,22 @@ export interface iMonthlyGlanceDataPoint {
   cumulative: number;
   daily: number;
 }
+
+export interface iScheduledDepositAmount {
+  amount: number;
+  isoCurrencyCode: string;
+}
+
+export interface iScheduledDeposit {
+  merchantName: string | null;
+  description: string | null;
+  frequency: string;
+  firstDate: string;
+  lastDate: string;
+  predictedNextDate: string;
+  averageAmount: iScheduledDepositAmount | null;
+  lastAmount: iScheduledDepositAmount | null;
+  isActive: boolean;
+  personalFinanceCategory: { primary: string; detailed: string } | null;
+  status: string;
+}

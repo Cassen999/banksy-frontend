@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw';
+import { scheduledDepositsMockData } from './scheduledDepositsMockData';
 
 const API = 'http://localhost:8080';
 
@@ -176,6 +177,20 @@ const plaid = {
   },
 };
 
+// --- Scheduled Deposits handlers ---
+
+const scheduledDeposits = {
+  success: http.get(`${API}/api/recurring/scheduled-deposits`, () =>
+    HttpResponse.json(scheduledDepositsMockData),
+  ),
+  empty: http.get(`${API}/api/recurring/scheduled-deposits`, () =>
+    HttpResponse.json([]),
+  ),
+  serverError: http.get(`${API}/api/recurring/scheduled-deposits`, () =>
+    new HttpResponse('Error getting scheduled deposit data', { status: 403 }),
+  ),
+};
+
 // --- Monthly Glance handlers ---
 
 const mockMonthlyGlance = {
@@ -214,7 +229,7 @@ const dev = {
   },
 };
 
-export const handlers = { auth, balance, transactions, plaid, monthlyGlance, dev };
+export const handlers = { auth, balance, transactions, plaid, scheduledDeposits, monthlyGlance, dev };
 
 // Default handlers used by the MSW server — all happy-path success cases
 export const defaultHandlers = [
@@ -229,5 +244,6 @@ export const defaultHandlers = [
   handlers.plaid.share.success,
   handlers.plaid.hideAccount.success,
   handlers.plaid.removeItem.success,
+  handlers.scheduledDeposits.success,
   handlers.monthlyGlance.success,
 ];

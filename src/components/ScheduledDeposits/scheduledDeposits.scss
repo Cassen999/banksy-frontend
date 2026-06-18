@@ -1,0 +1,92 @@
+@use '../../styles/variables' as *;
+
+.scheduled-deposits {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+
+  &__skeleton {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: color-mix(in srgb, var(--surface-ground) 70%, transparent);
+    border-radius: inherit;
+    z-index: 1;
+  }
+
+  &__retry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 1rem;
+
+    .pi {
+      font-size: 1.5rem;
+    }
+  }
+
+  &__empty {
+    padding: 1rem;
+    color: var(--text-color-secondary);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__piggy {
+    height: 3rem;
+    width: auto;
+    flex-shrink: 0;
+    padding-bottom: 10px;
+  }
+
+  &__detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    margin: 0;
+
+    dt {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--text-color-secondary);
+      margin-bottom: 0.125rem;
+    }
+
+    dd {
+      margin: 0;
+      color: var(--text-color);
+    }
+  }
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .p-accordion-header a {
+    text-decoration: none;
+    font-weight: 400;
+    font-size: 1rem;
+    padding: .75rem;
+  }
+}

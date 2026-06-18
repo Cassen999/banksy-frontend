@@ -1,0 +1,43 @@
+import type { iScheduledDeposit } from '../types/types';
+
+export const scheduledDepositsMockData: iScheduledDeposit[] = [
+  {
+    merchantName: 'Acme Corp',
+    description: 'DIRECT DEPOSIT PAYROLL',
+    frequency: 'BIWEEKLY',
+    firstDate: '2025-01-10',
+    lastDate: '2026-06-06',
+    predictedNextDate: '2026-06-20',
+    averageAmount: { amount: 2847.50, isoCurrencyCode: 'USD' },
+    lastAmount: { amount: 2847.50, isoCurrencyCode: 'USD' },
+    isActive: true,
+    personalFinanceCategory: { primary: 'INCOME', detailed: 'INCOME_WAGES' },
+    status: 'MATURE',
+  },
+  {
+    merchantName: 'Freelance Client LLC',
+    description: 'ACH CREDIT FREELANCE',
+    frequency: 'MONTHLY',
+    firstDate: '2025-03-01',
+    lastDate: '2026-06-01',
+    predictedNextDate: '2026-06-28',
+    averageAmount: { amount: 1200.00, isoCurrencyCode: 'USD' },
+    lastAmount: { amount: 1150.00, isoCurrencyCode: 'USD' },
+    isActive: true,
+    personalFinanceCategory: { primary: 'INCOME', detailed: 'INCOME_OTHER_INCOME' },
+    status: 'MATURE',
+  },
+  {
+    merchantName: null,
+    description: 'VENMO PAYMENT',
+    frequency: 'WEEKLY',
+    firstDate: '2025-12-01',
+    lastDate: '2026-06-08',
+    predictedNextDate: '2026-06-15',
+    averageAmount: { amount: 350.00, isoCurrencyCode: 'USD' },
+    lastAmount: { amount: 375.00, isoCurrencyCode: 'USD' },
+    isActive: true,
+    personalFinanceCategory: null,
+    status: 'MATURE',
+  },
+];

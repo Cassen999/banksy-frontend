@@ -37,14 +37,15 @@ const MOCK_USER: iUser = {
   username: 'testuser',
 };
 
-function renderHeader(props?: Partial<{ isSidebarOpen: boolean; onSidebarToggle: () => void }>) {
-  const merged = { isSidebarOpen: false, onSidebarToggle: vi.fn(), ...props };
+function renderHeader(props?: Partial<{ isSidebarOpen: boolean; onSidebarToggle: () => void; pageName: string }>) {
+  const merged = { isSidebarOpen: false, onSidebarToggle: vi.fn(), pageName: 'Dashboard', ...props };
   return render(
     <BrowserRouter>
       <AppHeader
         isSidebarOpen={merged.isSidebarOpen}
         onSidebarToggle={merged.onSidebarToggle}
         items={NAV_ITEMS}
+        pageName={merged.pageName}
       />
     </BrowserRouter>,
   );
@@ -149,6 +150,18 @@ describe('AppHeader', () => {
     it('should_notShowWelcomeMessage_whenUserIsNull', () => {
       renderHeader();
       expect(screen.queryByText(/Welcome/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('page name', () => {
+    it('should_renderPageNameElement_whenProvided', () => {
+      renderHeader({ pageName: 'Dashboard' });
+      expect(document.querySelectorAll('.header__page-name').length).toBeGreaterThan(0);
+    });
+
+    it('should_notRenderPageNameElement_whenEmpty', () => {
+      renderHeader({ pageName: '' });
+      expect(document.querySelector('.header__page-name')).not.toBeInTheDocument();
     });
   });
 
