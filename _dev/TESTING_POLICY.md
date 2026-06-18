@@ -22,21 +22,38 @@ Do not mock `fetch` or `axios` with hand-rolled mocks when MSW can do the job.
 
 ## Required Test Types
 
-**Unit tests (~70% of all tests):**
-- Custom hooks (test in isolation using `renderHook`)
-- Context reducers
-- Utility and helper functions
-- Any function that contains a conditional or maps/transforms data
+**Service tests — use MSW:**
+- Test each service function directly against an MSW handler.
+- Override handlers per-test with `server.use(handlers.domain.variant)` to test error paths.
+- Assert on the resolved/rejected value — do not test implementation details.
 
-**Integration tests (~30% of all tests):**
-- React components — render the component, interact with it via `userEvent`, assert
-  on what the user actually sees (text, roles, form state)
-- Use MSW handlers to simulate backend responses so components can be tested with
-  realistic data flow
-- Test the full data path: MSW response → hook/service → component output
+**Hook tests — mock service functions and contexts with `vi.mock`:**
+- Test each hook in isolation using `renderHook`.
+- Mock the service functions the hook calls (`vi.mock('../services/fooService', () => ({ fetchFoo: mockFn }))`)
+  so the test controls responses without going through MSW or a real service.
+- Mock any context hooks the hook consumes (`useAuth`, `useNotify`) with `vi.mock` too.
+- Wrap the hook in a provider (or a mocked provider) that satisfies any context the hook reads.
+- Assert on the values returned (`status`, `data`, `error`, etc.) and on side effects like
+  `triggerToast` calls.
+
+**Component tests — mock hooks (and child components when needed) with `vi.mock`:**
+- Render the component, interact via `userEvent`, and assert on what the user sees.
+- Mock the hook the component depends on (`vi.mock('../../hooks/useMonthlyGlance', ...)`) so
+  each test can drive the component into a specific state (loading, error, success) without
+  a live hook.
+- Mock context hooks (`useAuth`, `useNotify`) with `vi.mock`.
+- Mock complex child components (e.g. charts, third-party SDKs) with lightweight stubs when
+  they would otherwise blow up in jsdom.
 
 **Not required:**
 - End-to-end (E2E) tests (Playwright, Cypress) are NOT required for this project.
+- Full data path (MSW → service → hook → component) integration tests are not used — each
+  layer is tested independently.
+- External dependencies are not tested for their own functionality. For example, Chart.js
+  canvas rendering internals (`buildSplitBackgroundPlugin`, `buildChartData`, etc.) are
+  third-party concerns — stub or mock the library at the boundary and test only our
+  integration with it (e.g. that the chart renders, that the correct data is passed).
+  Low coverage on canvas/chart helper functions is expected and acceptable.
 
 ## Test File Location
 
@@ -78,14 +95,23 @@ it('should display balance when data loads', async () => {
 })
 ```
 
-**Naming — every test name must follow this format:**
+**Naming — group with `describe`, describe behavior in plain prose for `it()`:**
+```ts
+describe('ComponentName', () => {
+  describe('loading state', () => {
+    it('renders a progress spinner', () => { ... })
+    it('does not render the chart', () => { ... })
+  })
+  describe('error state', () => {
+    it('renders the retry button', () => { ... })
+    it('clicking retry calls retry()', async () => { ... })
+  })
+})
 ```
-should<ExpectedBehavior>_when<Condition>
-```
-Examples:
-- `shouldDisplayRelinkBanner_whenRelinkRequiredIsNonEmpty`
-- `shouldRedirectToLogin_whenApiReturns401`
-- `shouldDisableSubmitButton_whenFormIsInvalid`
+- Use nested `describe` blocks to group tests by state or scenario.
+- Write `it()` descriptions as plain sentences that complete "it ...": `'renders a progress spinner'`,
+  `'does not fetch when user is null'`, `'filters out isActive: false items'`.
+- Do not use camelCase or `_when` separators in test names.
 
 **Assertions:**
 - Multiple assertions are allowed when they validate a single logical behavior.
@@ -94,11 +120,17 @@ Examples:
 - Never assert on component state directly — assert on rendered output.
 
 **MSW setup:**
-- All MSW handlers live in `src/mocks/handlers.ts`, grouped by domain
-  (`handlers.balance`, `handlers.transactions`, `handlers.auth`, `handlers.plaid`).
+- All MSW handlers live in `src/mocks/handlers.ts`, grouped by domain:
+  `handlers.auth`, `handlers.balance`, `handlers.transactions`, `handlers.plaid`,
+  `handlers.scheduledDeposits`, `handlers.monthlyGlance`, `handlers.dev`.
 - The MSW server is set up in `src/mocks/server.ts` and started/reset in `src/test/setup.ts`.
-- Each handler has at least a `success` and `error` (or `serverError`) variant.
-- Override handlers per-test using `server.use(handlers.balance.withRelinkRequired)`.
+- Each handler group has at least a `success` and `serverError` variant. Some have additional
+  variants (`withRelinkRequired`, `empty`, `unauthorized`, `forbidden`, `badRequest`).
+- Some groups are nested: `handlers.auth.me.success`, `handlers.plaid.linkToken.success`,
+  `handlers.plaid.exchange.serverError`, etc. Flat groups: `handlers.balance.success`,
+  `handlers.scheduledDeposits.serverError`, `handlers.monthlyGlance.success`.
+- Override handlers per-test using `server.use(handlers.monthlyGlance.serverError)`.
+- MSW is used in **service tests only**. Hook and component tests use `vi.mock` instead.
 
 ## Document Lifecycle (enforced by hooks)
 

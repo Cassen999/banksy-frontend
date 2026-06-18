@@ -13,9 +13,10 @@ interface iAppHeaderProps {
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   items: MenuItem[];
+  pageName: string;
 }
 
-export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAppHeaderProps) {
+export default function AppHeader({ isSidebarOpen, onSidebarToggle, items, pageName }: iAppHeaderProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
 
@@ -50,6 +51,9 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
           aria-controls="app-sidebar"
           className="header__hamburger"
         />
+        {pageName && (
+          <span className="header__page-name" aria-hidden="true">{pageName}</span>
+        )}
       </div>
 
       {/* Desktop layout — visible at desktop breakpoint and above */}
@@ -72,6 +76,9 @@ export default function AppHeader({ isSidebarOpen, onSidebarToggle, items }: iAp
         </div>
 
         <div className="header__user-section">
+          {pageName && (
+            <span className="header__page-name" aria-hidden="true">{pageName}</span>
+          )}
           {user && (
             <span className="header__welcome">
               Welcome {user.firstName}!

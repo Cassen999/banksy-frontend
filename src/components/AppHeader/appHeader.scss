@@ -17,6 +17,7 @@
     padding: $spacing-sm $spacing-md 0;
     height: var(--header-height);
     box-sizing: border-box;
+    position: relative;
 
     @include bp('desktop') {
       display: none;
@@ -107,6 +108,28 @@
   &__menubar-logo {
     height: 28px;
     width: auto;
+  }
+
+  &__page-name {
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--color-text);
+
+    // Mobile: absolute center so it doesn't affect hamburger position
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    pointer-events: none;
+
+    @include bp('desktop') {
+      position: static;
+      transform: none;
+      pointer-events: auto;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
   }
 
   &__user-section {

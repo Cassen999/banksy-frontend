@@ -136,6 +136,39 @@ Fetches recurring transaction streams from Plaid. Without `accountId` aggregates
 
 ---
 
+### `GET /api/recurring/scheduled-deposits`
+
+Returns all active recurring deposit (inflow) streams predicted to occur within the current calendar month, aggregated across all linked bank accounts. Sorted ascending by `predictedNextDate`. Non-HEALTHY items are silently skipped.
+
+**Response `200`**
+```json
+[
+  {
+    "merchantName": "Employer Inc",
+    "description": "DIRECT DEPOSIT",
+    "frequency": "BIWEEKLY",
+    "firstDate": "2025-01-03",
+    "lastDate": "2026-06-01",
+    "predictedNextDate": "2026-06-20",
+    "averageAmount": { "amount": 2500.00, "isoCurrencyCode": "USD" },
+    "lastAmount": { "amount": 2500.00, "isoCurrencyCode": "USD" },
+    "isActive": true,
+    "personalFinanceCategory": { "primary": "INCOME", "detailed": "INCOME_WAGES" },
+    "status": "MATURE"
+  }
+]
+```
+
+Fields `merchantName`, `description`, `averageAmount`, `lastAmount`, and `personalFinanceCategory` may be null. Returns `[]` when no deposits are predicted this month.
+
+**Error responses**
+
+| Code | Condition |
+|---|---|
+| `403` | Any error (Plaid API failure, etc.) — body: `"Error getting scheduled deposit data"` |
+
+---
+
 ## Plaid Link
 
 ### `GET /api/plaid/link-token`

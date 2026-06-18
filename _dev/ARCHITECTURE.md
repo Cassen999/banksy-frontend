@@ -294,6 +294,8 @@ Any linked user (owner or shared) can trigger deletion. Not reversible.
 | `POST` | `/api/plaid/share` | Owner only | Share a bank with another user |
 | `PUT` | `/api/plaid/account/:plaidAccountId/hide` | Required | Soft-hide one account |
 | `DELETE` | `/api/plaid/item/:plaidItemId` | Required | Fully remove a bank connection |
+| `GET` | `/api/monthly-glance` | Required | Cumulative daily spending totals for the current month |
+| `GET` | `/api/recurring/scheduled-deposits` | Required | Recurring deposits predicted for current month |
 
 ---
 
@@ -741,7 +743,7 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 `src/components/AuthButton/AuthButton.tsx` is a reusable login/logout button used in `ViewportMask` and `SettingsPage`.
 
 - Props: none (reads `useAuth()` internally).
-- Implemented with `forwardRef<HTMLButtonElement>` so callers can hold a DOM ref (used by ViewportMask to focus the button after login failure).
+- Implemented with `forwardRef<iAuthButtonHandle>` so callers can hold a ref with a `focus()` method (used by ViewportMask to focus the button after login failure). The ref is not a raw DOM ref — it exposes only the `{ focus() }` handle declared in `iAuthButtonHandle`.
 - **Login:** sets `sessionStorage['banksy_login_pending'] = '1'` then redirects to `VITE_API_BASE_URL/oauth2/authorization/google`.
 - **Logout:** redirects to `VITE_API_BASE_URL/logout` (no sessionStorage flag — logout is synchronous).
 - Renders a PrimeReact `<Button>` with `rounded` and `className="auth-button"`.
@@ -750,19 +752,18 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 ## Homepage Component
 
-`src/components/Homepage/HomepagePage.tsx` is the landing page (route `/dashboard`). Display-only — no data fetching. No background image. No Lottie animation.
+`src/components/Homepage/HomepagePage.tsx` is the dashboard page (route `/dashboard`). Display-only at this layer — data fetching is delegated entirely to child components.
 
-Auth gating is handled globally by `ViewportMask` — this component always renders its logged-in content unconditionally.
+Auth gating is handled globally by `ViewportMask` — this component always renders its dashboard content unconditionally.
 
-**Mobile layout (<1024px):**
-- `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />`
-- `nav.homepage__nav` (flex-column): 5 `<Button>` nav items — Dashboard, Accounts, Transactions, Reports, Settings
+**Structure:**
+- `div.dashboard` root
+  - `h1.dashboard__title` — "Dashboard"
+  - `section.dashboard__graph` (aria-label "Spending trend graph") — renders `<MonthlyGlance />`
+  - `div.dashboard__next-deposit` (role "region", aria-label "Next scheduled deposit") — renders `<ScheduledDeposits />`
+  - `section.dashboard__accounts` (aria-label "Account overview") — placeholder, currently empty
 
-**Desktop layout (≥1024px):**
-- `h1.homepage__heading` (inline-flex): "Welcome to " + `<img alt="Banksy" />` — centered horizontally at top
-- `nav.homepage__nav` (CSS grid, 2 columns): nav buttons auto-flow into col 1: Dashboard / Transactions / Settings, col 2: Accounts / Reports
-
-**Dependencies:** `useTheme` (logo src), `useNavigate` (nav button clicks).
+**Dependencies:** `MonthlyGlance`, `ScheduledDeposits`. No hooks, no navigation, no theme reads.
 
 ---
 
@@ -860,6 +861,38 @@ Chart details:
 
 ---
 
+## Scheduled Deposits Architecture
+
+### Types (`src/types/types.ts`)
+- `iScheduledDepositAmount` — `{ amount: number; isoCurrencyCode: string }` — monetary value with currency code.
+- `iScheduledDeposit` — full shape of a recurring deposit stream returned by the API. Nullable fields: `merchantName`, `description`, `averageAmount`, `lastAmount`, `personalFinanceCategory`.
+
+### `src/services/scheduledDepositsService.ts`
+- `fetchScheduledDeposits()` — `GET /api/recurring/scheduled-deposits`. Returns `iScheduledDeposit[]`. Backend returns deposits sorted ascending by `predictedNextDate`, filtered to the current calendar month. Non-HEALTHY items are silently skipped by the backend.
+
+### `src/hooks/useScheduledDeposits.ts`
+Returns `{ status, deposits, retry }`. Status is `'idle' | 'loading' | 'error' | 'success'`.
+
+- Guards: does not call the service unless `user` (from `useAuth()`) is non-null.
+- Client-side filter: after a successful fetch, stores only items where `isActive: true`.
+- Status derivation, retry mechanism, and error toast pattern mirror `useMonthlyGlance.ts` exactly.
+
+### `src/components/ScheduledDeposits/ScheduledDeposits.tsx`
+Dashboard recurring-deposit panel. No props. Placed inside the `dashboard__next-deposit` div in `HomepagePage.tsx`.
+
+States:
+- **Auth loading / no user**: renders PrimeReact `<Skeleton />` filling the section.
+- **Loading**: opaque mask overlay + PrimeReact `<ProgressSpinner />`.
+- **Error**: opaque mask overlay + retry button (`pi-undo` icon + "Retry" label).
+- **Empty** (no active deposits this month): plain text "No upcoming deposits this month."
+- **Success**: PrimeReact `<Accordion multiple>` with one item per visible deposit.
+
+Visibility slice: `deposits.slice(0, 1)` on mobile (< 1024 px), `deposits.slice(0, 5)` on desktop (≥ 1024 px). All sliced items are already `isActive: true` (filtered in hook).
+
+Each accordion header shows the Piggy Bank SVG animation (`src/assets/Piggy Bank.svg`) alongside the deposit summary text. The expanded panel shows a two-column `<dl>` grid: From / Description / Frequency on the left; Last date+amount / Next date+amount on the right. Null fields display as `—`. Amounts formatted via `Intl.NumberFormat` with `isoCurrencyCode`. Frequency converted from all-caps (e.g. `BIWEEKLY`) to title-case (`Biweekly`).
+
+---
+
 ## Routing Table
 
 Routes are defined in `src/App.tsx`. Update this table whenever a route is added or removed.
@@ -867,7 +900,7 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 | Path | Component | Description |
 |------|-----------|-------------|
 | `/` | redirect | Permanently redirects to `/dashboard` |
-| `/dashboard` | `HomepagePage` | Landing page — centered welcome heading + nav button grid |
+| `/dashboard` | `HomepagePage` | Dashboard — monthly spending chart (MonthlyGlance) and next scheduled deposit panel (ScheduledDeposits) |
 | `/account` | `AccountPage` | Account Actions page — H1, description, and a grid of account management buttons (Link Account) |
 | `/settings` | `SettingsPage` | Settings page — logout button (initial implementation) |
 
