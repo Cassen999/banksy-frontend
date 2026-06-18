@@ -20,6 +20,50 @@ const EXCLUDED_PATTERNS = [
 ];
 const EXCLUDED_DIRS = ['src/types', 'src/assets', 'src/mocks', 'src/test'];
 
+// ------------------------------------------------------------
+// Component type classification
+// Used to route block messages to the correct document and
+// section so the agent knows exactly where to add the entry.
+// ------------------------------------------------------------
+type ComponentKind = 'component' | 'hook' | 'service' | 'context' | 'utility' | 'page' | 'other';
+
+function classifyComponentKind(file: string): ComponentKind {
+  const base = path.basename(file);
+  if (/\.test\.(ts|tsx)$/.test(base)) return 'other';
+  if (base.startsWith('use') && /\.(ts|tsx)$/.test(base)) return 'hook';
+  if (file.includes('src/contexts/')) return 'context';
+  if (file.includes('src/services/')) return 'service';
+  if (file.includes('src/utils/')) return 'utility';
+  if (file.includes('src/hooks/')) return 'hook';
+  if (/Page\.(tsx|ts)$/.test(base)) return 'page';
+  if (file.includes('src/components/')) return 'component';
+  return 'other';
+}
+
+function kindToArchSection(kind: ComponentKind): string {
+  switch (kind) {
+    case 'component': return 'Components section';
+    case 'page':      return 'Pages / Views section';
+    case 'hook':      return 'Hooks section';
+    case 'service':   return 'Services section';
+    case 'context':   return 'Contexts section';
+    case 'utility':   return 'Utilities section';
+    default:          return 'appropriate section';
+  }
+}
+
+function kindToComponentsTable(kind: ComponentKind): string {
+  switch (kind) {
+    case 'component': return 'Components table';
+    case 'page':      return 'Pages / Views table';
+    case 'hook':      return 'Hooks table';
+    case 'service':   return 'Services table';
+    case 'context':   return 'Contexts table';
+    case 'utility':   return 'Utilities table';
+    default:          return 'appropriate table';
+  }
+}
+
 interface FileCoverage {
   lines: { pct: number };
   branches: { pct: number };
@@ -106,6 +150,43 @@ function ensureDir(dirPath: string) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 }
 
+// ------------------------------------------------------------
+// Option B name detection
+//
+// Checks whether `name` appears in the document as:
+//   - A markdown table cell:  | name |  or  | name.ts |
+//   - A markdown code span:   `name`  or  `name.ts`
+//
+// This is intentionally strict. A name that appears only in
+// prose (e.g. mentioned in another component's description)
+// will NOT pass. The agent must add a proper table row or
+// code span entry for the check to pass.
+//
+// NOTE: This check runs after the agent has had the opportunity
+// to update the documents. The PostToolUse timing means the
+// documents on disk reflect the agent's latest writes. If the
+// agent updated the document correctly the check passes; if it
+// skipped the update the check fails and the block message
+// tells the agent exactly what to do to fix it.
+// ------------------------------------------------------------
+function isDocumentedInDoc(name: string, content: string): boolean {
+  // Match name or name.ts / name.tsx in a table cell or code span
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const tableCell = new RegExp(`\\|[^|\\n]*\\b${escaped}\\b[^|\\n]*\\|`, 'i');
+  const codeSpan  = new RegExp(`\`${escaped}(?:\\.(tsx?|jsx?))?\``, 'i');
+  return tableCell.test(content) || codeSpan.test(content);
+}
+
+function resolveDocPath(repoRoot: string, candidates: string[]): string {
+  for (const p of candidates) {
+    if (fs.existsSync(path.join(repoRoot, p))) return path.join(repoRoot, p);
+  }
+  return '';
+}
+
+// ------------------------------------------------------------
+// Report writers
+// ------------------------------------------------------------
 function writeTestReport(
   repoRoot: string,
   featureName: string,
@@ -210,6 +291,9 @@ function writeFixPlan(
   return path.join('reports', featureName, 'FIX_PLAN.md');
 }
 
+// ------------------------------------------------------------
+// Main
+// ------------------------------------------------------------
 function main() {
   let input: { transcript_path?: string };
   try {
@@ -222,21 +306,19 @@ function main() {
   const transcriptPath = input.transcript_path || '';
   const userMessages = extractUserMessages(transcriptPath);
 
-  // Emergency brake
   if (isEmergencyStop(userMessages)) process.exit(0);
 
   const repoRoot = findRepoRoot();
   const activeFeature = findActiveFeature(repoRoot);
 
-  // Step 0 — Not a feature session
   if (!activeFeature) process.exit(0);
 
   const { all: changedFiles, newFiles } = getChangedFiles(repoRoot);
 
-  // Guard — only run if src/ .ts/.tsx files changed
+  // Only run if src/ .ts/.tsx files changed
   if (!changedFiles.some((f) => f.startsWith('src/') && /\.(ts|tsx)$/.test(f))) process.exit(0);
 
-  // Step 1 — Run Vitest
+  // ── Step 1 — Run Vitest ────────────────────────────────────
   const vitestResult = spawnSync(
     'npx',
     ['vitest', 'run', '--coverage', '--reporter=verbose'],
@@ -247,7 +329,7 @@ function main() {
   const testFailures = failMatch ? parseInt(failMatch[1], 10) : 0;
   const testsPassed = vitestResult.status === 0 && testFailures === 0 && !/× /.test(vitestOutput);
 
-  // Step 2 — Parse coverage
+  // ── Step 2 — Parse coverage ────────────────────────────────
   const coveragePath = path.join(repoRoot, 'coverage', 'coverage-summary.json');
   let linePct = 0;
   let branchPct = 0;
@@ -280,87 +362,207 @@ function main() {
 
   const vitestOutputFull = vitestOutput + coverageNote;
 
-  // Step 3 — Architecture compliance
-  let archContent = '';
-  for (const p of [
-    path.join(repoRoot, '_dev', 'ARCHITECTURE.md'),
-    path.join(repoRoot, 'ARCHITECTURE.md'),
-    path.join(repoRoot, 'documentation', 'ARCHITECTURE.md'),
-  ]) {
-    if (fs.existsSync(p)) { archContent = fs.readFileSync(p, 'utf-8'); break; }
-  }
+  // ── Step 3 — Load living documents ────────────────────────
+  //
+  // Both ARCHITECTURE.md and COMPONENTS.md are read fresh from
+  // disk here. By the time this hook fires (PostToolUse) the
+  // agent has already had the opportunity to update them.
+  // The checks below reflect the current state of the files —
+  // if the agent updated them correctly the checks pass.
+  // If the agent skipped the updates the checks fail and the
+  // block messages below tell the agent exactly what to do.
+
+  const archDocPath = resolveDocPath(repoRoot, [
+    '_dev/ARCHITECTURE.md',
+    'ARCHITECTURE.md',
+    'documentation/ARCHITECTURE.md',
+  ]);
+  const componentsDocPath = resolveDocPath(repoRoot, [
+    '_dev/COMPONENTS.md',
+    'COMPONENTS.md',
+    'documentation/COMPONENTS.md',
+  ]);
+
+  const archContent      = archDocPath      ? fs.readFileSync(archDocPath, 'utf-8')      : '';
+  const componentsContent = componentsDocPath ? fs.readFileSync(componentsDocPath, 'utf-8') : '';
+
+  const archRelPath       = archDocPath      ? path.relative(repoRoot, archDocPath)      : '_dev/ARCHITECTURE.md';
+  const componentsRelPath = componentsDocPath ? path.relative(repoRoot, componentsDocPath) : '_dev/COMPONENTS.md';
 
   const archWasUpdated = changedFiles.some((f) =>
     ['ARCHITECTURE.md', '_dev/ARCHITECTURE.md', 'documentation/ARCHITECTURE.md'].includes(f),
   );
-
-  type ArchStatus = 'new-hard-block' | 'modified-not-documented' | 'modified-warn' | 'pass';
-  type ArchResult = { component: string; file: string; status: ArchStatus };
-
-  const archResults: ArchResult[] = [];
-  const srcChanged = changedFiles.filter(
-    (f) => f.startsWith('src/') && /\.(ts|tsx)$/.test(f) && !/\.(test|spec)\.(ts|tsx)$/.test(f) && !isExcluded(f),
+  const componentsWasUpdated = changedFiles.some((f) =>
+    ['COMPONENTS.md', '_dev/COMPONENTS.md', 'documentation/COMPONENTS.md'].includes(f),
   );
+
+  // ── Step 4 — Architecture + Components compliance ──────────
+  //
+  // For each changed non-test src/ file we check two things:
+  //   A) Is the component name documented in ARCHITECTURE.md?
+  //      Uses Option B detection: name must appear in a markdown
+  //      table cell or code span — not just anywhere in prose.
+  //   B) Is the component name documented in COMPONENTS.md?
+  //      Same Option B detection.
+  //
+  // A new file that fails either check is a hard block.
+  // A modified file that fails either check is also a hard block
+  // because the documents should have been updated to reflect
+  // whatever changed.
+  //
+  // A modified file that passes both checks but neither document
+  // was updated this session gets a soft warning — the agent
+  // must declare whether the change was functional or not.
+
+  type DocStatus = 'hard-block' | 'warn' | 'pass';
+
+  interface ComponentResult {
+    component: string;
+    file: string;
+    kind: ComponentKind;
+    isNew: boolean;
+    inArch: boolean;
+    inComponents: boolean;
+    archUpdated: boolean;
+    componentsUpdated: boolean;
+    status: DocStatus;
+  }
+
+  const srcChanged = changedFiles.filter(
+    (f) =>
+      f.startsWith('src/') &&
+      /\.(ts|tsx)$/.test(f) &&
+      !/\.(test|spec)\.(ts|tsx)$/.test(f) &&
+      !isExcluded(f),
+  );
+
+  const componentResults: ComponentResult[] = [];
 
   for (const file of srcChanged) {
     const componentName = path.basename(file).replace(/\.(tsx?|jsx?)$/, '');
-    const isDocumented = archContent
-      ? new RegExp(`\\b${componentName}\\b`, 'i').test(archContent)
-      : false;
+    const kind = classifyComponentKind(file);
     const isNew = newFiles.has(file);
 
-    let status: ArchStatus;
-    if (!isDocumented) {
-      status = isNew ? 'new-hard-block' : 'modified-not-documented';
-    } else if (!archWasUpdated) {
-      status = 'modified-warn';
+    // Skip files that don't map to a registerable kind
+    if (kind === 'other') continue;
+
+    const inArch       = archContent       ? isDocumentedInDoc(componentName, archContent)       : false;
+    const inComponents = componentsContent ? isDocumentedInDoc(componentName, componentsContent) : false;
+
+    let status: DocStatus;
+    if (!inArch || !inComponents) {
+      // Missing from one or both documents — always a hard block
+      // regardless of whether the file is new or modified.
+      status = 'hard-block';
+    } else if (!archWasUpdated && !componentsWasUpdated) {
+      // Documented in both, but neither doc was touched this session.
+      // Soft warning — agent must declare functional vs non-functional.
+      status = 'warn';
     } else {
       status = 'pass';
     }
-    archResults.push({ component: componentName, file, status });
+
+    componentResults.push({
+      component: componentName,
+      file,
+      kind,
+      isNew,
+      inArch,
+      inComponents,
+      archUpdated: archWasUpdated,
+      componentsUpdated: componentsWasUpdated,
+      status,
+    });
   }
 
-  const hardBlockArch = archResults.filter((r) => r.status === 'new-hard-block' || r.status === 'modified-not-documented');
-  const warnArch = archResults.filter((r) => r.status === 'modified-warn');
+  const hardBlockComponents = componentResults.filter((r) => r.status === 'hard-block');
+  const warnComponents      = componentResults.filter((r) => r.status === 'warn');
 
-  // Step 4 — Write TEST_REPORT.md
+  // ── Step 5 — Write TEST_REPORT.md ─────────────────────────
   const coveragePass = linePct >= COVERAGE_THRESHOLD && branchPct >= COVERAGE_THRESHOLD;
   const reportPath = writeTestReport(
     repoRoot, activeFeature, testsPassed, testFailures,
     linePct, branchPct, filesBelow, excludedFiles, vitestOutputFull,
   );
 
-  // Step 5 — Write FIX_PLAN.md if needed
+  // ── Step 6 — Write FIX_PLAN.md if needed ──────────────────
   let fixPlanPath: string | null = null;
   if (!testsPassed || !coveragePass) {
     fixPlanPath = writeFixPlan(repoRoot, activeFeature, testFailures, linePct, branchPct, vitestOutputFull);
   }
 
-  // Step 6 — Build summary
+  // ── Step 7 — Build summary ─────────────────────────────────
   const icon = (ok: boolean) => (ok ? '✓' : '✗');
-  const pf = (ok: boolean, val?: string) => `${ok ? 'PASS' : 'FAIL'}${val ? ` (${val})` : ''}`;
+  const pf   = (ok: boolean, val?: string) => `${ok ? 'PASS' : 'FAIL'}${val ? ` (${val})` : ''}`;
 
-  const archLines = archResults.map((r) => {
-    if (r.status === 'new-hard-block') return `    ✗ ${r.component} — new file, not documented in ARCHITECTURE.md`;
-    if (r.status === 'modified-not-documented') return `    ✗ ${r.component} — modified, not documented in ARCHITECTURE.md`;
-    if (r.status === 'modified-warn') return `    ⚠ ${r.component} — documented; ARCHITECTURE.md not yet updated this session`;
-    return `    ✓ ${r.component} — documented, ARCHITECTURE.md updated`;
+  // Build per-component lines for the summary
+  const componentLines = componentResults.map((r) => {
+    if (r.status === 'hard-block') {
+      const missingFrom: string[] = [];
+      if (!r.inArch)       missingFrom.push(archRelPath);
+      if (!r.inComponents) missingFrom.push(componentsRelPath);
+      return `    ✗ ${r.component} — not documented in: ${missingFrom.join(', ')}`;
+    }
+    if (r.status === 'warn') {
+      return `    ⚠ ${r.component} — documented; neither living doc was updated this session`;
+    }
+    return `    ✓ ${r.component} — documented in both living docs`;
   });
 
-  const archWarnSection = warnArch.length > 0
+  // Build the warn declaration block (soft — does not block)
+  const warnSection = warnComponents.length > 0
     ? [
         '',
-        'ARCHITECTURE.md FUNCTIONAL CHANGE DECLARATION REQUIRED:',
-        ...warnArch.map((r) => `  - ${r.component} (${r.file})`),
+        'LIVING DOC DECLARATION REQUIRED:',
+        ...warnComponents.map((r) => `  - ${r.component} (${r.file})`),
         '',
         'For each file above, declare ONE of:',
-        '  • "This change is FUNCTIONAL — I am updating _dev/ARCHITECTURE.md now."',
+        '  • "This change is FUNCTIONAL — I am updating both living docs now."',
         '  • "This change is NON-FUNCTIONAL (no change to behaviour, usage, or output) — no update needed."',
-        'You must make this declaration before closing the session.',
+        'You must make this declaration before the session is considered done.',
       ]
     : [];
 
-  const allHardPassed = testsPassed && coveragePass && hardBlockArch.length === 0;
+  // Build precise fix instructions for each hard-blocked component.
+  // These tell the agent exactly what to do so it can unblock itself
+  // without guessing at the correct document format.
+  const hardBlockInstructions = hardBlockComponents.flatMap((r) => {
+    const lines: string[] = [
+      '',
+      `  REQUIRED ACTION for ${r.component} (${r.file}):`,
+    ];
+
+    if (!r.inArch) {
+      lines.push(
+        `    1. Open ${archRelPath}`,
+        `    2. Find the ${kindToArchSection(r.kind)}`,
+        `    3. Add a new row to the table for ${r.component}:`,
+        `       - Follow the exact column format of the existing rows in that section`,
+        `       - Include: name, file path, props interface (if component), return shape (if hook),`,
+        `         method+endpoint (if service), state held (if context), and description`,
+        `       - The entry MUST appear in a markdown table cell for the doc check to pass`,
+      );
+    }
+
+    if (!r.inComponents) {
+      lines.push(
+        `    ${r.inArch ? '1' : '4'}. Open ${componentsRelPath}`,
+        `    ${r.inArch ? '2' : '5'}. Find the ${kindToComponentsTable(r.kind)}`,
+        `    ${r.inArch ? '3' : '6'}. Add a new row to the table for ${r.component}:`,
+        `       - Follow the exact column format of the existing rows in that table`,
+        `       - The entry MUST appear in a markdown table cell for the doc check to pass`,
+      );
+    }
+
+    lines.push(
+      `    After updating the document(s), this hook will re-run and pass`,
+      `    for ${r.component} if the entry is correctly formatted.`,
+    );
+
+    return lines;
+  });
+
+  const allHardPassed = testsPassed && coveragePass && hardBlockComponents.length === 0;
 
   const summary = [
     '═══════════════════════════════════════════════════',
@@ -380,25 +582,35 @@ function main() {
     `  Tests:           ${icon(testsPassed)} ${pf(testsPassed, `${testFailures} failures`)}`,
     `  Line coverage:   ${icon(linePct >= COVERAGE_THRESHOLD)} ${linePct.toFixed(1)}% (${pf(linePct >= COVERAGE_THRESHOLD)})`,
     `  Branch coverage: ${icon(branchPct >= COVERAGE_THRESHOLD)} ${branchPct.toFixed(1)}% (${pf(branchPct >= COVERAGE_THRESHOLD)})`,
-    '  ARCHITECTURE.md components:',
-    ...archLines,
-    ...archWarnSection,
+    '  Living docs:',
+    ...(componentResults.length > 0 ? componentLines : ['    — no registerable src/ changes detected']),
+    ...warnSection,
     '',
     '───────────────────────────────────────────────────',
     allHardPassed ? 'ALL CHECKS PASSED' : 'BLOCKED — DO NOT MARK DONE',
     '───────────────────────────────────────────────────',
     '',
     ...(allHardPassed
-      ? ['All checks passed. Feature implementation is complete.']
+      ? ['All checks passed. The session is done.']
       : [
-          ...(!testsPassed ? [`  ✗ Fix ${testFailures} failing test(s). See reports/${activeFeature}/FIX_PLAN.md`] : []),
-          ...(linePct < COVERAGE_THRESHOLD ? [`  ✗ Line coverage ${linePct.toFixed(1)}% is below the ${COVERAGE_THRESHOLD}% threshold.`] : []),
-          ...(branchPct < COVERAGE_THRESHOLD ? [`  ✗ Branch coverage ${branchPct.toFixed(1)}% is below the ${COVERAGE_THRESHOLD}% threshold.`] : []),
-          ...hardBlockArch.map((r) =>
-            r.status === 'new-hard-block'
-              ? `  ✗ New file '${r.component}' must be documented in _dev/ARCHITECTURE.md.`
-              : `  ✗ Modified file '${r.component}' is not documented in _dev/ARCHITECTURE.md.`,
-          ),
+          ...(!testsPassed
+            ? [`  ✗ Fix ${testFailures} failing test(s). See reports/${activeFeature}/FIX_PLAN.md`]
+            : []),
+          ...(linePct < COVERAGE_THRESHOLD
+            ? [`  ✗ Line coverage ${linePct.toFixed(1)}% is below the ${COVERAGE_THRESHOLD}% threshold.`]
+            : []),
+          ...(branchPct < COVERAGE_THRESHOLD
+            ? [`  ✗ Branch coverage ${branchPct.toFixed(1)}% is below the ${COVERAGE_THRESHOLD}% threshold.`]
+            : []),
+          ...(hardBlockComponents.length > 0
+            ? [
+                '  ✗ The following files are not fully documented in the living docs:',
+                ...hardBlockComponents.map((r) => `      ${r.component} (${r.file})`),
+                '',
+                'HOW TO FIX — update the living documents then re-run:',
+                ...hardBlockInstructions,
+              ]
+            : []),
         ]),
     '',
     '═══════════════════════════════════════════════════',

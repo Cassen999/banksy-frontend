@@ -916,8 +916,6 @@ main      ← stable/release only. Never commit directly.
 
 - Feature branches are always cut from `develop`
 - PRs merge into `develop`; `develop` merges into `main` for releases
-- Before any commit: run `npm test`, `npm run lint`, and `npm run build`
-- Do not commit if any of them fail
 
 ---
 
