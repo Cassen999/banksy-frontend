@@ -114,12 +114,15 @@ interface iBalanceResponse {
 }
 
 interface iAccount {
+  accountId:        string           // our internal UUID for the PlaidAccount row
   name:             string
   type:             string           // "depository" | "credit" | "loan" | "investment" | "other"
   subtype:          string | null    // "checking" | "savings" | "credit card"
   currentBalance:   number | null
   availableBalance: number | null    // null for credit/investment accounts
-  currency:         string | null    // ISO 4217, e.g. "USD"
+  isoCurrencyCode:  string | null    // ISO 4217, e.g. "USD"
+  institutionName:  string
+  customName:       string | null    // user-defined label; null if not yet set
 }
 ```
 
@@ -146,11 +149,12 @@ interface iTransactionsResponse {
 }
 
 interface iTransaction {
-  date:     string      // ISO date "YYYY-MM-DD"
-  name:     string      // merchant or description
-  amount:   number      // positive = debit (money left account), negative = credit/refund
-  currency: string | null
-  category: string[]    // Plaid hierarchy, e.g. ["Food and Drink", "Restaurants"]
+  accountId:       string       // links back to iAccount.accountId
+  date:            string       // ISO date "YYYY-MM-DD"
+  name:            string       // merchant or description
+  amount:          number       // positive = debit (money left account), negative = credit/refund
+  isoCurrencyCode: string | null
+  category:        string[]     // Plaid hierarchy, e.g. ["Food and Drink", "Restaurants"]
 }
 ```
 
@@ -248,6 +252,24 @@ Only the bank's owner can share. Shared users cannot re-share.
 
 ---
 
+#### `PUT /api/plaid/account/:plaidAccountId/name`
+
+Set or update the custom display name for a single account. The new name replaces any
+previously saved value. Passing an empty string clears the custom name.
+
+**Path variable:** `plaidAccountId` — our internal UUID of the `PlaidAccount` row
+
+**Request body:**
+```ts
+{ customName: string }
+```
+
+**Response (200):** empty body
+**Response (404):** account not found
+**Response (403):** caller does not have access to the account
+
+---
+
 #### `PUT /api/plaid/account/:plaidAccountId/hide`
 
 Soft-hides a single account. Hidden accounts are excluded from all balance and
@@ -292,6 +314,7 @@ Any linked user (owner or shared) can trigger deletion. Not reversible.
 | `GET` | `/api/plaid/link-token/full-relink/:itemId` | Owner only | Token for full re-link |
 | `POST` | `/api/plaid/exchange` | Required | Exchange public token after Link |
 | `POST` | `/api/plaid/share` | Owner only | Share a bank with another user |
+| `PUT` | `/api/plaid/account/:plaidAccountId/name` | Required | Set or update custom account display name |
 | `PUT` | `/api/plaid/account/:plaidAccountId/hide` | Required | Soft-hide one account |
 | `DELETE` | `/api/plaid/item/:plaidItemId` | Required | Fully remove a bank connection |
 | `GET` | `/api/monthly-glance` | Required | Cumulative daily spending totals for the current month |
@@ -761,9 +784,9 @@ Auth gating is handled globally by `ViewportMask` — this component always rend
   - `h1.dashboard__title` — "Dashboard"
   - `section.dashboard__graph` (aria-label "Spending trend graph") — renders `<MonthlyGlance />`
   - `div.dashboard__next-deposit` (role "region", aria-label "Next scheduled deposit") — renders `<ScheduledDeposits />`
-  - `section.dashboard__accounts` (aria-label "Account overview") — placeholder, currently empty
+  - `section.dashboard__accounts` (aria-label "Account overview") — renders `<QuickAccountOverview />`
 
-**Dependencies:** `MonthlyGlance`, `ScheduledDeposits`. No hooks, no navigation, no theme reads.
+**Dependencies:** `MonthlyGlance`, `ScheduledDeposits`, `QuickAccountOverview`. No hooks, no navigation, no theme reads.
 
 ---
 
@@ -890,6 +913,98 @@ States:
 Visibility slice: `deposits.slice(0, 1)` on mobile (< 1024 px), `deposits.slice(0, 5)` on desktop (≥ 1024 px). All sliced items are already `isActive: true` (filtered in hook).
 
 Each accordion header shows the Piggy Bank SVG animation (`src/assets/Piggy Bank.svg`) alongside the deposit summary text. The expanded panel shows a two-column `<dl>` grid: From / Description / Frequency on the left; Last date+amount / Next date+amount on the right. Null fields display as `—`. Amounts formatted via `Intl.NumberFormat` with `isoCurrencyCode`. Frequency converted from all-caps (e.g. `BIWEEKLY`) to title-case (`Biweekly`).
+
+---
+
+## Quick Account Overview Architecture
+
+**Files introduced by this feature:**
+
+| Kind | Name | Path |
+|------|------|------|
+| Service | `balanceService.ts` | `src/services/balanceService.ts` |
+| Service | `transactionService.ts` | `src/services/transactionService.ts` |
+| Hook | `useQuickAccountOverview.ts` | `src/hooks/useQuickAccountOverview.ts` |
+| Component | `CustomAccountNameModal.tsx` | `src/components/CustomAccountNameModal/CustomAccountNameModal.tsx` |
+| Component | `CustomAccountNameButton.tsx` | `src/components/CustomAccountNameButton/CustomAccountNameButton.tsx` |
+| Component | `QuickAccountOverview.tsx` | `src/components/QuickAccountOverview/QuickAccountOverview.tsx` |
+
+### Types (`src/types/types.ts`)
+- `iAccount` — single Plaid account as returned by `GET /api/balance` (see Balance section above).
+- `iBalanceResponse` — `{ accounts: iAccount[]; relinkRequired: iRelinkSignal[] }`.
+- `iTransaction` — single transaction row from `GET /api/transactions` (see Transactions section above).
+- `iTransactionsResponse` — `{ transactions: iTransaction[]; total: number; relinkRequired: iRelinkSignal[] }`.
+- `iAccountWithTransactions` — derived type: `iAccount` extended with `transactions: iTransaction[]` (sorted desc by date) and `lastDeposit: iTransaction | null` (most recent transaction where `amount < 0`).
+- `iSetAccountNameRequest` — request body for `PUT /api/plaid/account/:id/name`: `{ customName: string }`.
+
+### `src/services/balanceService.ts`
+- `fetchBalance()` — `GET /api/balance`. Returns `iBalanceResponse`. Throws on non-2xx.
+
+### `src/services/transactionService.ts`
+- `fetchTransactions(days?: number)` — `GET /api/transactions`. Passes `?days=N` when provided. Returns `iTransactionsResponse`. Throws on non-2xx.
+
+### `src/services/plaidService.ts` — addition
+- `setAccountName(plaidAccountId, customName)` — `PUT /api/plaid/account/:plaidAccountId/name`. Returns `void`. Throws a typed error with the response status on non-2xx.
+
+### `src/hooks/useQuickAccountOverview.ts`
+Returns `{ status: tStatus, accounts: iAccountWithTransactions[], relinkRequired: iRelinkSignal[], retry, refetchBalance }`.
+
+Two-effect pattern:
+
+**Main effect** (depends on `[user, fetchCount]`): runs `Promise.all([fetchBalance(), fetchTransactions(30)])` in parallel. On success sets all raw state and transitions to `'success'`. On error transitions to `'error'` and fires an error toast. `retry()` resets status to `'idle'` and increments `fetchCount`.
+
+**Balance-only effect** (depends on `[user, balanceFetchCount]`): skips when `balanceFetchCount === 0`. Calls `fetchBalance()` silently (no spinner) to refresh account names after `setAccountName` succeeds. On error fires an error toast asking the user to reload. `refetchBalance()` increments `balanceFetchCount`.
+
+Derived state via `useMemo`:
+- `accounts`: maps `rawAccounts` → `iAccountWithTransactions[]`. Each account's `transactions` is the subset of `rawTransactions` matching `accountId`, sorted descending by date. `lastDeposit` is the first transaction with `amount < 0` (credits from the user's perspective).
+- `relinkRequired`: union of `balanceRelinkRequired` and `transactionRelinkRequired`.
+
+Status derivation: public `status` is `'loading'` when `user` is non-null and internal status is `'idle'`; otherwise mirrors internal status. When `user` is null, status is `'idle'`.
+
+Both effects use a `cancelled` flag to prevent state updates after unmount.
+
+### `src/components/CustomAccountNameModal/CustomAccountNameModal.tsx`
+PrimeReact `Dialog` for setting or editing an account's custom display name.
+
+Props (`iCustomAccountNameModalProps`): `visible`, `onHide`, `accountId`, `institutionName`, `subtype`, `currentCustomName`, `onSuccess`.
+
+**Prefill logic** (runs on `visible` change): when opened, sets the input value to:
+1. `currentCustomName` if non-null
+2. `"${institutionName} - ${Subtype}"` (subtype title-cased) if subtype is non-null
+3. `institutionName` otherwise
+
+**Save flow**: calls `setAccountName(accountId, inputValue)`, then calls `onSuccess(inputValue)` and closes the modal. On error, shows a toast: "Account not found" for 404, generic message otherwise.
+
+### `src/components/CustomAccountNameButton/CustomAccountNameButton.tsx`
+Thin button wrapper that owns modal-open state.
+
+Props (`iCustomAccountNameButtonProps`): `accountId`, `institutionName`, `subtype`, `currentCustomName`, `onSuccess`, `buttonProps?: Omit<ButtonProps, 'label' | 'onClick'>`.
+
+Label: `'Edit Name'` when `currentCustomName` is non-null, `'Add Name'` otherwise. `buttonProps` is spread onto `<Button>` before `label` and `onClick` so callers cannot accidentally override those.
+
+Renders `<CustomAccountNameModal>` co-located; `onSuccess` calls the prop and closes the modal.
+
+### `src/components/QuickAccountOverview/QuickAccountOverview.tsx`
+Dashboard accordion listing all linked Plaid accounts.
+
+States:
+- **Auth loading / no user**: renders `<Skeleton />`.
+- **Loading**: opaque mask + `<ProgressSpinner />`.
+- **Error**: opaque mask + retry button; clicking calls `retry()`.
+- **Empty** (no accounts): plain text "No linked accounts".
+- **Success**: PrimeReact `<Accordion>` (single-select, all closed by default) with one panel per account.
+
+Each accordion **header** shows the formatted account label: `"${institutionName} - ${Subtype}"` (subtype title-cased) when subtype is non-null, or just `institutionName`.
+
+Each accordion **panel** (`AccountPanel` sub-component) shows:
+- Custom name (when set) in a `.quick-account-overview__custom-name` span
+- Balance row (`currentBalance` formatted as currency, or `—` for null)
+- Last deposit row (absolute value of `lastDeposit.amount` formatted as currency, or `—`)
+- `<CustomAccountNameButton>` — `onSuccess` calls `hook.refetchBalance()` to silently refresh
+- Recent transactions list (up to 3 on mobile, up to 5 on desktop — based on `window.innerWidth >= 1024`)
+- "Detailed View" link (placeholder href)
+
+**Amount display convention:** `amount > 0` is a debit (money out) — displayed as `"-$X.XX"` with class `--debit` (red). `amount < 0` is a credit (money in) — displayed as `"$X.XX"` (absolute value) with class `--credit` (green). `lastDeposit.amount` is always negative by construction (filtered to `amount < 0`), so the last deposit value is always shown as positive absolute value.
 
 ---
 

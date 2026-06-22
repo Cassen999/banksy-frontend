@@ -56,3 +56,44 @@ export interface iScheduledDeposit {
   personalFinanceCategory: { primary: string; detailed: string } | null;
   status: string;
 }
+
+export interface iAccount {
+  accountId: string;
+  name: string;
+  type: string;
+  subtype: string | null;
+  currentBalance: number | null;
+  availableBalance: number | null;
+  isoCurrencyCode: string | null;
+  institutionName: string;
+  customName: string | null;
+}
+
+export interface iBalanceResponse {
+  accounts: iAccount[];
+  relinkRequired: iRelinkSignal[];
+}
+
+export interface iTransaction {
+  accountId: string;
+  date: string;
+  name: string;
+  amount: number;
+  isoCurrencyCode: string | null;
+  category: string[];
+}
+
+export interface iTransactionsResponse {
+  transactions: iTransaction[];
+  total: number;
+  relinkRequired: iRelinkSignal[];
+}
+
+export interface iAccountWithTransactions extends iAccount {
+  transactions: iTransaction[];
+  lastDeposit: iTransaction | null;
+}
+
+export interface iSetAccountNameRequest {
+  customName: string;
+}

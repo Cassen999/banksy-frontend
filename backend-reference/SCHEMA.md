@@ -180,15 +180,33 @@ Read-only lookup table of all 146 Plaid PFCv2 taxonomy entries (18 primary + 128
 
 ---
 
+### `user_account_names`
+*Migration: V9*
+
+Per-user custom display names for linked bank accounts. Allows users to override the default label (institution name + account subtype) with a personal name. Written via `AccountCustomizationService`; surfaced in `/api/balance` responses as `customName` (null when absent).
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default `gen_random_uuid()` | |
+| `user_id` | UUID | NOT NULL, FK → `users(id)` ON DELETE CASCADE | |
+| `plaid_account_id` | VARCHAR(255) | NOT NULL | Plaid-assigned account ID string |
+| `custom_name` | VARCHAR(255) | NOT NULL | User-set display name |
+| `created_at` | TIMESTAMP | NOT NULL, default NOW() | |
+
+**Unique constraint:** `(user_id, plaid_account_id)`
+
+---
+
 ## Entity Relationship Summary
 
 ```
 users
-  ├── oauth_identities   (1:many, ON DELETE CASCADE)
-  ├── user_plaid_items   (many:many join to plaid_items)
-  ├── notifications      (1:many, ON DELETE CASCADE)
+  ├── oauth_identities      (1:many, ON DELETE CASCADE)
+  ├── user_plaid_items      (many:many join to plaid_items)
+  ├── notifications         (1:many, ON DELETE CASCADE)
   ├── user_rejected_categories  (1:many, ON DELETE CASCADE)
-  └── user_excluded_accounts    (1:many, ON DELETE CASCADE)
+  ├── user_excluded_accounts    (1:many, ON DELETE CASCADE)
+  └── user_account_names        (1:many, ON DELETE CASCADE)
 
 plaid_items
   ├── plaid_accounts     (1:many, ON DELETE CASCADE)

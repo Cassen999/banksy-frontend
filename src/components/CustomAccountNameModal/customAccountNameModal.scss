@@ -1,0 +1,15 @@
+.custom-account-name-modal {
+  &__body {
+    padding: 0.5rem 0;
+  }
+
+  &__input {
+    width: 100%;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+}

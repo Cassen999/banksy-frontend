@@ -27,7 +27,7 @@ Returns the current user's profile.
 
 ### `GET /api/balance`
 
-Fetches current account balances from Plaid for all linked items. Skips non-HEALTHY items and includes them in `relinkRequired` instead.
+Fetches current account balances from Plaid for all linked items. Skips non-HEALTHY items and includes them in `relinkRequired` instead. `customName` is `null` unless the user has set one via `PUT /api/plaid/account/{plaidAccountId}/name`.
 
 **Response `200`**
 ```json
@@ -40,7 +40,9 @@ Fetches current account balances from Plaid for all linked items. Skips non-HEAL
       "subtype": "checking",
       "currentBalance": 1234.56,
       "availableBalance": 1200.00,
-      "isoCurrencyCode": "USD"
+      "isoCurrencyCode": "USD",
+      "institutionName": "Chase",
+      "customName": "Travel Card"
     }
   ],
   "relinkRequired": [
@@ -75,6 +77,7 @@ Fetches transactions for the last `n` days (default 30). Hidden accounts are exc
 {
   "transactions": [
     {
+      "accountId": "plaid-account-id-string",
       "date": "2026-06-10",
       "name": "Starbucks",
       "amount": 5.75,
@@ -250,6 +253,48 @@ Shares an existing bank connection with another user by email.
 ```
 
 **Response `200`** — empty body on success.
+
+---
+
+## Account Customization
+
+### `PUT /api/plaid/account/{plaidAccountId}/name`
+
+Sets or updates a custom display name for a linked account. Any linked user may call this. Upserts — calling again with a different name replaces the previous value.
+
+**Path parameters:** `plaidAccountId` — Plaid-assigned account ID string (from `/api/balance` `accountId` field).
+
+**Request body**
+```json
+{ "customName": "Travel Card" }
+```
+
+**Response `200`** — empty body on success.
+
+**Error responses**
+
+| Code | Condition |
+|---|---|
+| `404` | Account not found in the database |
+| `403` | Calling user is not linked to the account's item |
+| `500` | Unhandled exception |
+
+---
+
+### `DELETE /api/plaid/account/{plaidAccountId}/name`
+
+Removes a custom display name, reverting the account to its default label on the frontend. Idempotent — no error if no custom name exists.
+
+**Path parameters:** `plaidAccountId` — Plaid-assigned account ID string.
+
+**Response `200`** — empty body on success.
+
+**Error responses**
+
+| Code | Condition |
+|---|---|
+| `404` | Account not found in the database |
+| `403` | Calling user is not linked to the account's item |
 
 ---
 
