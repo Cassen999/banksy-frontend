@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useQuickAccountOverview } from '../../hooks/useQuickAccountOverview';
 import CustomAccountNameButton from '../CustomAccountNameButton/CustomAccountNameButton';
 import type { iAccountWithTransactions, iTransaction } from '../../types/types';
+import { isDesktop } from '../../utils/isDesktop';
 
 function formatHeader(account: iAccountWithTransactions): string {
   if (account.customName !== null) return account.customName;
@@ -78,7 +79,6 @@ function AccountPanel({ account, txnLimit, onNameSuccess }: iAccountPanelProps) 
               subtype={account.subtype}
               currentCustomName={account.customName}
               onSuccess={onNameSuccess}
-              buttonProps={{ text: true, size: 'small' }}
             />
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function QuickAccountOverview() {
     return <Skeleton className="quick-account-overview__skeleton" />;
   }
 
-  const txnLimit = window.innerWidth >= 1024 ? 5 : 3;
+  const txnLimit = isDesktop() ? 5 : 3;
 
   return (
     <div className="quick-account-overview">

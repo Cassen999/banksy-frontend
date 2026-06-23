@@ -25,9 +25,12 @@ export default function CustomAccountNameButton({
   return (
     <>
       <Button
+        text
         rounded
         {...buttonProps}
-        label={currentCustomName !== null ? 'Edit Name' : 'Add Name'}
+        className={`custom-account-name-button${buttonProps?.className ? ` ${buttonProps.className}` : ''}`}
+        icon="pi pi-pen-to-square"
+        aria-label={currentCustomName !== null ? 'Edit account name' : 'Add account name'}
         onClick={() => setModalVisible(true)}
       />
       <CustomAccountNameModal

@@ -15,6 +15,7 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMonthlyGlance } from '../../hooks/useMonthlyGlance';
 import type { iMonthlyGlanceDataPoint } from '../../types/types';
+import { isDesktop } from '../../utils/isDesktop';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -158,7 +159,6 @@ export default function MonthlyGlance() {
     return <Skeleton className="monthly-glance__skeleton" />;
   }
 
-  const isMobile = window.innerWidth < 1024;
   const splitPlugin = buildSplitBackgroundPlugin();
   const styles = getComputedStyle(document.documentElement);
   const textColor = styles.getPropertyValue('--text-color').trim();
@@ -184,7 +184,7 @@ export default function MonthlyGlance() {
         <div className="monthly-glance__chart-wrapper">
           <Line
             data={buildChartData(data, primaryColor, tealColor)}
-            options={buildChartOptions(data, isMobile, textColor)}
+            options={buildChartOptions(data, !isDesktop(), textColor)}
             plugins={[splitPlugin]}
           />
         </div>

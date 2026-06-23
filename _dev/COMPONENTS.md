@@ -85,7 +85,7 @@ Update this file whenever a new entry is added or removed.
 
 | Name | File | Description |
 |------|------|-------------|
-_None. Session expiry is handled server-side via `302` redirect._
+| `isDesktop` | `src/utils/isDesktop.ts` | Returns `true` when `window.innerWidth >= 1024`. Mobile-first breakpoint check — use this instead of reading `window.innerWidth` directly in components. |
 
 ---
 

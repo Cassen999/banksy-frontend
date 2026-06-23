@@ -455,6 +455,8 @@ TypeScript interfaces and type aliases mirroring backend response shapes.
 Stateless helper functions. No React imports, no hooks, no API calls.
 Every utility function must have a unit test.
 
+**`isDesktop.ts`** — `isDesktop(): boolean`. Returns `true` when `window.innerWidth >= 1024`. Use this everywhere a component needs to branch on the desktop breakpoint — do not read `window.innerWidth` directly in component or hook files.
+
 ---
 
 ## State Management

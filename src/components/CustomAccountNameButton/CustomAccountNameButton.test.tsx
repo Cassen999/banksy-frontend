@@ -37,16 +37,16 @@ beforeEach(() => {
 
 describe('CustomAccountNameButton', () => {
   describe('when currentCustomName is null', () => {
-    it('renders button with label "Add Name"', () => {
+    it('renders button with aria-label "Add account name"', () => {
       render(<CustomAccountNameButton {...defaultProps} currentCustomName={null} />);
-      expect(screen.getByRole('button', { name: /add name/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add account name/i })).toBeInTheDocument();
     });
   });
 
   describe('when currentCustomName is set', () => {
-    it('renders button with label "Edit Name"', () => {
+    it('renders button with aria-label "Edit account name"', () => {
       render(<CustomAccountNameButton {...defaultProps} currentCustomName="My Account" />);
-      expect(screen.getByRole('button', { name: /edit name/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /edit account name/i })).toBeInTheDocument();
     });
   });
 
@@ -55,14 +55,14 @@ describe('CustomAccountNameButton', () => {
       const user = userEvent.setup();
       render(<CustomAccountNameButton {...defaultProps} />);
       expect(screen.queryByTestId('mock-modal')).not.toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: /add name/i }));
+      await user.click(screen.getByRole('button', { name: /add account name/i }));
       expect(screen.getByTestId('mock-modal')).toBeInTheDocument();
     });
 
     it('closes the modal when onHide is called', async () => {
       const user = userEvent.setup();
       render(<CustomAccountNameButton {...defaultProps} />);
-      await user.click(screen.getByRole('button', { name: /add name/i }));
+      await user.click(screen.getByRole('button', { name: /add account name/i }));
       await user.click(screen.getByRole('button', { name: /close/i }));
       expect(screen.queryByTestId('mock-modal')).not.toBeInTheDocument();
     });
@@ -79,7 +79,7 @@ describe('CustomAccountNameButton', () => {
           onSuccess={onSuccess}
         />,
       );
-      await user.click(screen.getByRole('button', { name: /edit name/i }));
+      await user.click(screen.getByRole('button', { name: /edit account name/i }));
       expect(mockModal).toHaveBeenLastCalledWith(
         expect.objectContaining({
           accountId: 'test-id',

@@ -1,4 +1,5 @@
 import piggyBankUrl from '../../assets/Piggy Bank.svg';
+import { isDesktop } from '../../utils/isDesktop';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Skeleton } from 'primereact/skeleton';
 import { ProgressSpinner } from 'primereact/progressspinner';
@@ -59,8 +60,7 @@ export default function ScheduledDeposits() {
     return <Skeleton className="scheduled-deposits__skeleton" />;
   }
 
-  const isMobile = window.innerWidth < 1024;
-  const visibleDeposits = isMobile ? deposits.slice(0, 1) : deposits.slice(0, 5);
+  const visibleDeposits = isDesktop() ? deposits.slice(0, 5) : deposits.slice(0, 1);
 
   return (
     <div className="scheduled-deposits">

@@ -6,19 +6,20 @@
 |-------|--------|
 | Tests | PASS |
 | Line Coverage | 89.5% (PASS) |
-| Branch Coverage | 84.6% (PASS) |
+| Branch Coverage | 84.3% (PASS) |
 
 ## Coverage Results
 
 - **Line coverage:** 89.5% (threshold: 80%)
-- **Branch coverage:** 84.6% (threshold: 80%)
+- **Branch coverage:** 84.3% (threshold: 80%)
 
 ### Excluded Files
 _Per hook exclusion list — excluded from threshold:_
 _None_
 
 ### Files Below Threshold
-- `src/components/MonthlyGlance/MonthlyGlance.tsx — line: 35.1%, branch: 48.6%`
+- `src/components/CustomAccountNameButton/CustomAccountNameButton.tsx — line: 100.0%, branch: 75.0%`
+- `src/components/MonthlyGlance/MonthlyGlance.tsx — line: 33.9%, branch: 48.6%`
 
 ## Test Results
 
@@ -28,30 +29,27 @@ _None_
 ### Vitest Output
 
 ```
-st.ts > apiClient > should_useViteApiBaseUrl_asBaseURL 0ms
-
- Test Files  28 passed (28)
-      Tests  275 passed (275)
-   Start at  16:43:26
-   Duration  8.93s (transform 1.26s, setup 6.66s, import 5.84s, tests 15.69s, environment 23.19s)
+nsform 1.42s, setup 6.95s, import 5.49s, tests 13.84s, environment 23.40s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   87.89 |    84.58 |   93.28 |    89.5 |                   
+All files          |   87.87 |    84.31 |   93.33 |   89.47 |                   
  ...nts/AuthButton |    90.9 |      100 |      80 |      90 |                   
   AuthButton.tsx   |    90.9 |      100 |      80 |      90 | 14                
+ ...ountNameButton |     100 |       75 |     100 |     100 |                   
+  ...ameButton.tsx |     100 |       75 |     100 |     100 | 31                
  ...countNameModal |   96.29 |       90 |     100 |     100 |                   
   ...NameModal.tsx |   96.29 |       90 |     100 |     100 | 32                
  components/Layout |   85.71 |    86.66 |    62.5 |      85 |                   
   Layout.tsx       |   85.71 |    86.66 |    62.5 |      85 | 32-36             
- .../MonthlyGlance |   33.89 |    48.57 |   61.53 |   35.08 |                   
-  ...hlyGlance.tsx |   33.89 |    48.57 |   61.53 |   35.08 | 27-74,122-128     
+ .../MonthlyGlance |   32.75 |    48.57 |   61.53 |   33.92 |                   
+  ...hlyGlance.tsx |   32.75 |    48.57 |   61.53 |   33.92 | 28-75,123-129     
  ...ccountOverview |   93.54 |    86.04 |     100 |   96.42 |                   
-  ...tOverview.tsx |   93.54 |    86.04 |     100 |   96.42 | 50                
+  ...tOverview.tsx |   93.54 |    86.04 |     100 |   96.42 | 51                
  ...eduledDeposits |     100 |     93.1 |     100 |     100 |                   
-  ...dDeposits.tsx |     100 |     93.1 |     100 |     100 | 42-43             
+  ...dDeposits.tsx |     100 |     93.1 |     100 |     100 | 43-44             
  contexts          |     100 |       96 |     100 |     100 |                   
   ThemeContext.tsx |     100 |    93.75 |     100 |     100 | 56                
  hooks             |   95.13 |    82.69 |     100 |     100 |                   
@@ -62,10 +60,10 @@ All files          |   87.89 |    84.58 |   93.28 |    89.5 |
 -------------------|---------|----------|---------|---------|-------------------
 
 =============================== Coverage summary ===============================
-Statements   : 87.89% ( 385/438 )
-Branches     : 84.58% ( 214/253 )
-Functions    : 93.28% ( 125/134 )
-Lines        : 89.5% ( 358/400 )
+Statements   : 87.87% ( 384/437 )
+Branches     : 84.31% ( 215/255 )
+Functions    : 93.33% ( 126/135 )
+Lines        : 89.47% ( 357/399 )
 ================================================================================
 
 stderr | src/hooks/useLinkAccount.test.ts > useLinkAccount > sets isLoading to true when initiateLinkFlow is called
