@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import Layout from './Layout';
 import type { iUser } from '../../types/types';
 
@@ -59,6 +59,14 @@ function renderLayout(children = <p>page content</p>) {
     <BrowserRouter>
       <Layout>{children}</Layout>
     </BrowserRouter>,
+  );
+}
+
+function renderLayoutWithRoute(path: string, children = <p>page content</p>) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Layout>{children}</Layout>
+    </MemoryRouter>,
   );
 }
 
@@ -163,6 +171,32 @@ describe('Layout', () => {
       renderLayout();
       const sidebar = document.querySelector('.sidebar');
       expect(sidebar?.innerHTML).toContain('/settings');
+    });
+  });
+
+  describe('nav item active state', () => {
+    it('applies active class to exactly one nav item', () => {
+      renderLayoutWithRoute('/dashboard');
+      const activeItems = document.querySelectorAll('.p-menuitem.active');
+      expect(activeItems.length).toBe(1);
+    });
+
+    it('marks the Dashboard item active when on the dashboard route', () => {
+      renderLayoutWithRoute('/dashboard');
+      const activeItem = document.querySelector('.p-menuitem.active');
+      expect(activeItem?.textContent).toContain('Dashboard');
+    });
+
+    it('marks the Settings item active when on the settings route', () => {
+      renderLayoutWithRoute('/settings');
+      const activeItem = document.querySelector('.p-menuitem.active');
+      expect(activeItem?.textContent).toContain('Settings');
+    });
+
+    it('marks the Accounts item active when on the account route', () => {
+      renderLayoutWithRoute('/account');
+      const activeItem = document.querySelector('.p-menuitem.active');
+      expect(activeItem?.textContent).toContain('Accounts');
     });
   });
 

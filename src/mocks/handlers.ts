@@ -14,20 +14,54 @@ const mockUser = {
 };
 
 const mockAccount = {
+  accountId: 'plaid-account-id-1',
   name: 'Plaid Checking',
   type: 'depository',
   subtype: 'checking',
   currentBalance: 1234.56,
   availableBalance: 1100.0,
-  currency: 'USD',
+  isoCurrencyCode: 'USD',
+  institutionName: 'Chase',
+  customName: null,
+};
+
+const mockAccount2 = {
+  accountId: 'plaid-account-id-2',
+  name: 'Plaid Savings',
+  type: 'depository',
+  subtype: 'savings',
+  currentBalance: 5678.9,
+  availableBalance: 5678.9,
+  isoCurrencyCode: 'USD',
+  institutionName: 'Bank of America',
+  customName: null,
 };
 
 const mockTransaction = {
+  accountId: 'plaid-account-id-1',
   date: '2025-05-01',
   name: 'Coffee Shop',
   amount: 4.5,
-  currency: 'USD',
+  isoCurrencyCode: 'USD',
   category: ['Food and Drink', 'Coffee Shop'],
+};
+
+const mockTransaction2 = {
+  accountId: 'plaid-account-id-2',
+  date: '2025-05-03',
+  name: 'Netflix',
+  amount: 15.49,
+  isoCurrencyCode: 'USD',
+  category: ['Entertainment'],
+};
+
+const mockTransaction3 = {
+  accountId: 'plaid-account-id-1',
+  date: '2025-04-30',
+  name: 'Paycheck',
+  amount: -2500.0,
+  isoCurrencyCode: 'USD',
+  category: ['Income', 'Wages'],
 };
 
 const mockRelinkSignal = {
@@ -57,7 +91,7 @@ const auth = {
 
 const balance = {
   success: http.get(`${API}/api/balance`, () =>
-    HttpResponse.json({ accounts: [mockAccount], relinkRequired: [] }),
+    HttpResponse.json({ accounts: [mockAccount, mockAccount2], relinkRequired: [] }),
   ),
   withRelinkRequired: http.get(`${API}/api/balance`, () =>
     HttpResponse.json({ accounts: [], relinkRequired: [mockRelinkSignal] }),
@@ -74,7 +108,11 @@ const balance = {
 
 const transactions = {
   success: http.get(`${API}/api/transactions`, () =>
-    HttpResponse.json({ transactions: [mockTransaction], total: 1, relinkRequired: [] }),
+    HttpResponse.json({
+      transactions: [mockTransaction, mockTransaction2, mockTransaction3],
+      total: 3,
+      relinkRequired: [],
+    }),
   ),
   withRelinkRequired: http.get(`${API}/api/transactions`, () =>
     HttpResponse.json({ transactions: [], total: 0, relinkRequired: [mockRelinkSignal] }),
@@ -175,6 +213,20 @@ const plaid = {
       HttpResponse.json({ error: 'Internal server error' }, { status: 500 }),
     ),
   },
+  setAccountName: {
+    success: http.put(`${API}/api/plaid/account/:plaidAccountId/name`, () =>
+      new HttpResponse(null, { status: 200 }),
+    ),
+    notFound: http.put(`${API}/api/plaid/account/:plaidAccountId/name`, () =>
+      new HttpResponse(null, { status: 404 }),
+    ),
+    forbidden: http.put(`${API}/api/plaid/account/:plaidAccountId/name`, () =>
+      new HttpResponse(null, { status: 403 }),
+    ),
+    serverError: http.put(`${API}/api/plaid/account/:plaidAccountId/name`, () =>
+      new HttpResponse(null, { status: 500 }),
+    ),
+  },
 };
 
 // --- Scheduled Deposits handlers ---
@@ -244,6 +296,7 @@ export const defaultHandlers = [
   handlers.plaid.share.success,
   handlers.plaid.hideAccount.success,
   handlers.plaid.removeItem.success,
+  handlers.plaid.setAccountName.success,
   handlers.scheduledDeposits.success,
   handlers.monthlyGlance.success,
 ];

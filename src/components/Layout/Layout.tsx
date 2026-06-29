@@ -29,11 +29,11 @@ export default function Layout({ children }: iLayoutProps) {
   const { toastRef, hideToast, showBanner, bannerConfig, triggerToast } = useNotify();
 
   const NAV_ITEMS: MenuItem[] = [
-    { label: 'Dashboard', icon: 'pi pi-home', url: '/dashboard', command: () => navigate('/dashboard') },
-    { label: 'Accounts', icon: 'pi pi-wallet', command: () => navigate('/account'), url: '/account' },
+    { label: 'Dashboard', icon: 'pi pi-home', url: '/dashboard', command: () => navigate('/dashboard'), className: location.pathname === '/dashboard' ? 'active' : undefined },
+    { label: 'Accounts', icon: 'pi pi-wallet', url: '/account', command: () => navigate('/account'), className: location.pathname === '/account' ? 'active' : undefined },
     { label: 'Transactions', icon: 'pi pi-list' },
     { label: 'Reports', icon: 'pi pi-chart-bar' },
-    { label: 'Settings', icon: 'pi pi-cog', url: '/settings', command: () => navigate('/settings') },
+    { label: 'Settings', icon: 'pi pi-cog', url: '/settings', command: () => navigate('/settings'), className: location.pathname === '/settings' ? 'active' : undefined },
   ];
 
   useEffect(() => {

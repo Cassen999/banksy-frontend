@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { server } from '../mocks/server';
 import { handlers } from '../mocks/handlers';
-import { fetchLinkToken, exchangePublicToken } from './plaidService';
+import { fetchLinkToken, exchangePublicToken, setAccountName } from './plaidService';
 
 describe('fetchLinkToken', () => {
   it('returns link_token on 200', async () => {
@@ -52,5 +52,27 @@ describe('exchangePublicToken', () => {
 
   beforeEach(() => {
     server.resetHandlers();
+  });
+});
+
+describe('setAccountName', () => {
+  it('resolves on 200', async () => {
+    const result = await setAccountName('plaid-account-id-1', 'My Checking');
+    expect(result).toBeUndefined();
+  });
+
+  it('throws with status 404 on not found', async () => {
+    server.use(handlers.plaid.setAccountName.notFound);
+    await expect(setAccountName('plaid-account-id-1', 'My Checking')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws with status 403 on forbidden', async () => {
+    server.use(handlers.plaid.setAccountName.forbidden);
+    await expect(setAccountName('plaid-account-id-1', 'My Checking')).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('throws with status 500 on server error', async () => {
+    server.use(handlers.plaid.setAccountName.serverError);
+    await expect(setAccountName('plaid-account-id-1', 'My Checking')).rejects.toMatchObject({ status: 500 });
   });
 });

@@ -11,6 +11,10 @@ vi.mock('../ScheduledDeposits/ScheduledDeposits', () => ({
   default: () => <div data-testid="scheduled-deposits-mock" />,
 }));
 
+vi.mock('../QuickAccountOverview/QuickAccountOverview', () => ({
+  default: () => <div data-testid="quick-account-overview-mock" />,
+}));
+
 function renderPage() {
   return render(
     <BrowserRouter>

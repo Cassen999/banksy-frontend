@@ -1,0 +1,199 @@
+@use '../../styles/variables' as *;
+
+.quick-account-overview {
+  position: relative;
+  min-height: 3rem;
+  height: 100%;
+
+  &__skeleton {
+    height: 12rem;
+    border-radius: 6px;
+  }
+
+  &__mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-ground);
+    z-index: 1;
+    border-radius: 6px;
+  }
+
+  &__retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 0.875rem;
+    min-height: 44px;
+
+    &:hover {
+      background: var(--primary-50);
+    }
+  }
+
+  &__empty {
+    text-align: center;
+    color: var(--text-color-secondary);
+    padding: 1rem 0;
+    margin: 0;
+  }
+
+  // Accordion panel body
+  &__panel {
+    padding: 0;
+  }
+
+  &__top {
+    border-bottom: 1px solid var(--surface-border);
+    margin-bottom: 0.5rem;
+  }
+
+  &__info-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--surface-border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+  }
+
+  &__value {
+    text-align: right;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  &__name-value {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  &__custom-name {
+    font-weight: 500;
+  }
+
+  // Transactions section
+  &__transactions-section {
+    position: relative;
+  }
+
+  &__transactions-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: center;
+    margin: 0.5rem 0 0.375rem;
+    color: var(--text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__transaction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.5rem;
+  }
+
+  &__transaction-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--surface-border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__date {
+    color: var(--text-color-secondary);
+  }
+
+  &__amount {
+    font-weight: 500;
+    text-align: right;
+
+    &--debit {
+      color: var(--red-500);
+    }
+
+    &--credit {
+      color: var(--green-500);
+    }
+  }
+
+  &__no-transactions {
+    text-align: center;
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  &__detailed-link {
+    display: block;
+    text-align: right;
+    font-size: 0.8125rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    padding-top: 0.375rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__scroll-panel {
+    height: 100%;
+    width: 100%;
+  }
+
+  &__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    height: 100%;
+    text-align: center;
+    padding: $spacing-lg;
+    box-sizing: border-box;
+  }
+
+  &__empty-message {
+    color: var(--color-text-muted);
+    font-size: $font-size-base;
+    margin: 0;
+  }
+
+  @include bp('desktop') {
+    &__info-row {
+      font-size: 0.9375rem;
+    }
+
+    &__transaction-row {
+      font-size: 0.9375rem;
+    }
+  }
+}

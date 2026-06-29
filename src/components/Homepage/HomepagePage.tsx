@@ -1,5 +1,6 @@
 import MonthlyGlance from '../MonthlyGlance/MonthlyGlance';
 import ScheduledDeposits from '../ScheduledDeposits/ScheduledDeposits';
+import QuickAccountOverview from '../QuickAccountOverview/QuickAccountOverview';
 
 export default function HomepagePage() {
   return (
@@ -11,7 +12,9 @@ export default function HomepagePage() {
       <div className="dashboard__next-deposit" role="region" aria-label="Next scheduled deposit">
         <ScheduledDeposits />
       </div>
-      <section className="dashboard__accounts" aria-label="Account overview" />
+      <section className="dashboard__accounts" aria-label="Account overview">
+        <QuickAccountOverview />
+      </section>
     </div>
   );
 }
