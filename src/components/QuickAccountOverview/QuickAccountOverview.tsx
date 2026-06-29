@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Accordion, AccordionTab } from 'primereact/accordion';
+import { ScrollPanel } from 'primereact/scrollpanel';
 import { Skeleton } from 'primereact/skeleton';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuickAccountOverview } from '../../hooks/useQuickAccountOverview';
 import CustomAccountNameButton from '../CustomAccountNameButton/CustomAccountNameButton';
+import LinkAccount from '../LinkAccount/LinkAccount';
 import type { iAccountWithTransactions, iTransaction } from '../../types/types';
 import { isDesktop } from '../../utils/isDesktop';
 
@@ -135,7 +137,29 @@ export default function QuickAccountOverview() {
     return <Skeleton className="quick-account-overview__skeleton" />;
   }
 
-  const txnLimit = isDesktop() ? 5 : 3;
+  const desktop = isDesktop();
+  const txnLimit = desktop ? 5 : 3;
+  const shouldScroll = !desktop && accounts.length >= 5;
+
+  const accordionEl = (
+    <Accordion
+      activeIndex={activeIndex ?? undefined}
+      onTabChange={(e) => {
+        const idx = e.index;
+        setActiveIndex(typeof idx === 'number' ? idx : null);
+      }}
+    >
+      {accounts.map((account) => (
+        <AccordionTab key={account.accountId} header={formatHeader(account)}>
+          <AccountPanel
+            account={account}
+            txnLimit={txnLimit}
+            onNameSuccess={refetchBalance}
+          />
+        </AccordionTab>
+      ))}
+    </Accordion>
+  );
 
   return (
     <div className="quick-account-overview">
@@ -157,26 +181,17 @@ export default function QuickAccountOverview() {
         </div>
       )}
       {status === 'success' && accounts.length === 0 && (
-        <p className="quick-account-overview__empty">No linked accounts</p>
+        <div className="quick-account-overview__empty-state">
+          <p className="quick-account-overview__empty-message">
+            Get started with Banksy by linking your accounts
+          </p>
+          <LinkAccount />
+        </div>
       )}
       {status === 'success' && accounts.length > 0 && (
-        <Accordion
-          activeIndex={activeIndex ?? undefined}
-          onTabChange={(e) => {
-            const idx = e.index;
-            setActiveIndex(typeof idx === 'number' ? idx : null);
-          }}
-        >
-          {accounts.map((account) => (
-            <AccordionTab key={account.accountId} header={formatHeader(account)}>
-              <AccountPanel
-                account={account}
-                txnLimit={txnLimit}
-                onNameSuccess={refetchBalance}
-              />
-            </AccordionTab>
-          ))}
-        </Accordion>
+        shouldScroll
+          ? <ScrollPanel className="quick-account-overview__scroll-panel" style={{ height: '100%' }}>{accordionEl}</ScrollPanel>
+          : accordionEl
       )}
     </div>
   );

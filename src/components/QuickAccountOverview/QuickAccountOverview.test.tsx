@@ -11,12 +11,18 @@ vi.mock('../../contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../CustomAccountNameButton/CustomAccountNameButton', () => ({
   default: vi.fn(() => <button>Name Button</button>),
 }));
+vi.mock('../LinkAccount/LinkAccount', () => ({
+  default: vi.fn(() => <button>Link Account</button>),
+}));
+vi.mock('../../utils/isDesktop', () => ({ isDesktop: vi.fn() }));
 
 import { useQuickAccountOverview } from '../../hooks/useQuickAccountOverview';
 import { useAuth } from '../../contexts/AuthContext';
+import { isDesktop } from '../../utils/isDesktop';
 
 const mockUseQuickAccountOverview = vi.mocked(useQuickAccountOverview);
 const mockUseAuth = vi.mocked(useAuth);
+const mockIsDesktop = vi.mocked(isDesktop);
 const mockRetry = vi.fn();
 const mockRefetchBalance = vi.fn();
 
@@ -86,6 +92,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUseAuth.mockReturnValue({ user: mockUser, isLoading: false, clearUser: vi.fn() });
   mockUseQuickAccountOverview.mockReturnValue(successHookReturn);
+  mockIsDesktop.mockReturnValue(false);
 });
 
 describe('QuickAccountOverview', () => {
@@ -140,13 +147,43 @@ describe('QuickAccountOverview', () => {
   });
 
   describe('success state — no accounts', () => {
-    it('renders empty message when accounts is empty', () => {
-      mockUseQuickAccountOverview.mockReturnValue({
-        ...successHookReturn,
-        accounts: [],
-      });
+    it('renders onboarding message when accounts is empty', () => {
+      mockUseQuickAccountOverview.mockReturnValue({ ...successHookReturn, accounts: [] });
       render(<QuickAccountOverview />);
-      expect(screen.getByText('No linked accounts')).toBeInTheDocument();
+      expect(screen.getByText('Get started with Banksy by linking your accounts')).toBeInTheDocument();
+    });
+
+    it('renders Link Account button in the empty state', () => {
+      mockUseQuickAccountOverview.mockReturnValue({ ...successHookReturn, accounts: [] });
+      render(<QuickAccountOverview />);
+      expect(screen.getByRole('button', { name: /link account/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('scroll panel', () => {
+    const fiveAccounts: iAccountWithTransactions[] = Array.from({ length: 5 }, (_, i) => ({
+      ...mockAccount1,
+      accountId: `plaid-account-id-${i + 10}`,
+    }));
+
+    it('wraps accordion in scroll panel on mobile when there are 5 or more accounts', () => {
+      mockIsDesktop.mockReturnValue(false);
+      mockUseQuickAccountOverview.mockReturnValue({ ...successHookReturn, accounts: fiveAccounts });
+      render(<QuickAccountOverview />);
+      expect(document.querySelector('.quick-account-overview__scroll-panel')).toBeInTheDocument();
+    });
+
+    it('does not wrap accordion in scroll panel on mobile when there are fewer than 5 accounts', () => {
+      mockIsDesktop.mockReturnValue(false);
+      render(<QuickAccountOverview />);
+      expect(document.querySelector('.quick-account-overview__scroll-panel')).not.toBeInTheDocument();
+    });
+
+    it('does not wrap accordion in scroll panel on desktop even with 5 or more accounts', () => {
+      mockIsDesktop.mockReturnValue(true);
+      mockUseQuickAccountOverview.mockReturnValue({ ...successHookReturn, accounts: fiveAccounts });
+      render(<QuickAccountOverview />);
+      expect(document.querySelector('.quick-account-overview__scroll-panel')).not.toBeInTheDocument();
     });
   });
 

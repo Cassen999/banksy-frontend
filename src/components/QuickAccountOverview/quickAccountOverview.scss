@@ -3,6 +3,7 @@
 .quick-account-overview {
   position: relative;
   min-height: 3rem;
+  height: 100%;
 
   &__skeleton {
     height: 12rem;
@@ -161,6 +162,29 @@
     &:hover {
       text-decoration: underline;
     }
+  }
+
+  &__scroll-panel {
+    height: 100%;
+    width: 100%;
+  }
+
+  &__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    height: 100%;
+    text-align: center;
+    padding: $spacing-lg;
+    box-sizing: border-box;
+  }
+
+  &__empty-message {
+    color: var(--color-text-muted);
+    font-size: $font-size-base;
+    margin: 0;
   }
 
   @include bp('desktop') {

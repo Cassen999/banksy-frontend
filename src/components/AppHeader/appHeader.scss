@@ -90,6 +90,34 @@
     .p-menuitem-icon {
       margin-right: $spacing-xs;
     }
+
+    .p-menuitem-link {
+      text-decoration: none;
+    }
+
+    .p-menuitem:hover .p-menuitem-link {
+      text-decoration: none;
+    }
+
+    .p-menuitem:hover .p-menuitem-text,
+    .p-menuitem:hover .p-menuitem-icon {
+      color: var(--color-primary);
+    }
+
+    .p-menuitem.active {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 1.25rem;
+        right: 1.25rem;
+        height: 2px;
+        background-color: var(--color-primary);
+        border-radius: 1px;
+      }
+    }
   }
 
   &__menubar-logo-link {
@@ -123,12 +151,7 @@
     pointer-events: none;
 
     @include bp('desktop') {
-      position: static;
-      transform: none;
-      pointer-events: auto;
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
-      font-weight: 500;
+      display: none;
     }
   }
 

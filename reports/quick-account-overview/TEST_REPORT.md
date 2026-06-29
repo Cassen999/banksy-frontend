@@ -6,12 +6,12 @@
 |-------|--------|
 | Tests | PASS |
 | Line Coverage | 89.5% (PASS) |
-| Branch Coverage | 84.3% (PASS) |
+| Branch Coverage | 85.3% (PASS) |
 
 ## Coverage Results
 
 - **Line coverage:** 89.5% (threshold: 80%)
-- **Branch coverage:** 84.3% (threshold: 80%)
+- **Branch coverage:** 85.3% (threshold: 80%)
 
 ### Excluded Files
 _Per hook exclusion list — excluded from threshold:_
@@ -29,25 +29,25 @@ _None_
 ### Vitest Output
 
 ```
-nsform 1.42s, setup 6.95s, import 5.49s, tests 13.84s, environment 23.40s)
+nsform 1.23s, setup 6.38s, import 4.35s, tests 12.77s, environment 20.70s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   87.87 |    84.31 |   93.33 |   89.47 |                   
+All files          |   87.95 |    85.28 |   93.33 |   89.55 |                   
  ...nts/AuthButton |    90.9 |      100 |      80 |      90 |                   
   AuthButton.tsx   |    90.9 |      100 |      80 |      90 | 14                
  ...ountNameButton |     100 |       75 |     100 |     100 |                   
   ...ameButton.tsx |     100 |       75 |     100 |     100 | 31                
  ...countNameModal |   96.29 |       90 |     100 |     100 |                   
   ...NameModal.tsx |   96.29 |       90 |     100 |     100 | 32                
- components/Layout |   85.71 |    86.66 |    62.5 |      85 |                   
-  Layout.tsx       |   85.71 |    86.66 |    62.5 |      85 | 32-36             
+ components/Layout |   85.71 |    90.47 |    62.5 |      85 |                   
+  Layout.tsx       |   85.71 |    90.47 |    62.5 |      85 | 32-36             
  .../MonthlyGlance |   32.75 |    48.57 |   61.53 |   33.92 |                   
   ...hlyGlance.tsx |   32.75 |    48.57 |   61.53 |   33.92 | 28-75,123-129     
- ...ccountOverview |   93.54 |    86.04 |     100 |   96.42 |                   
-  ...tOverview.tsx |   93.54 |    86.04 |     100 |   96.42 | 51                
+ ...ccountOverview |   94.11 |    89.36 |     100 |   96.77 |                   
+  ...tOverview.tsx |   94.11 |    89.36 |     100 |   96.77 | 53                
  ...eduledDeposits |     100 |     93.1 |     100 |     100 |                   
   ...dDeposits.tsx |     100 |     93.1 |     100 |     100 | 43-44             
  contexts          |     100 |       96 |     100 |     100 |                   
@@ -60,10 +60,10 @@ All files          |   87.87 |    84.31 |   93.33 |   89.47 |
 -------------------|---------|----------|---------|---------|-------------------
 
 =============================== Coverage summary ===============================
-Statements   : 87.87% ( 384/437 )
-Branches     : 84.31% ( 215/255 )
+Statements   : 87.95% ( 387/440 )
+Branches     : 85.28% ( 226/265 )
 Functions    : 93.33% ( 126/135 )
-Lines        : 89.47% ( 357/399 )
+Lines        : 89.55% ( 360/402 )
 ================================================================================
 
 stderr | src/hooks/useLinkAccount.test.ts > useLinkAccount > sets isLoading to true when initiateLinkFlow is called

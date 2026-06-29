@@ -79,20 +79,23 @@ npm run lint            — run ESLint
 
 | Name | File | Props interface | Description |
 |------|------|-----------------|-------------|
-| `Layout` | `src/components/Layout/Layout.tsx` | `iLayoutProps` | Full-app shell. Renders `AppHeader`, `AppSidebar` (mobile only), backdrop overlay, global `Toast` and `Message` banner, `<main>` body. Renders `ViewportMask` outside the layout div. Owns sidebar open/close state. Calls `useNotify()`. |
-| `AppHeader` | `src/components/AppHeader/AppHeader.tsx` | `iAppHeaderProps` | Responsive header. Mobile: hamburger button + current page name. Desktop: brand logo link + floating pill Menubar + page name + welcome text. Reads `useAuth()` and `useTheme()`. |
+| `Layout` | `src/components/Layout/Layout.tsx` | `iLayoutProps` | Full-app shell. Renders `AppHeader`, `AppSidebar` (mobile only), backdrop overlay, global `Toast` and `Message` banner, `<main>` body. Renders `ViewportMask` outside the layout div. Owns sidebar open/close state. Adds `className: 'active'` to the `NAV_ITEMS` entry matching the current `location.pathname`. Calls `useNotify()`. |
+| `AppHeader` | `src/components/AppHeader/AppHeader.tsx` | `iAppHeaderProps` | Responsive header. Mobile: hamburger button + current page name (centered, SR-only on desktop). Desktop: brand logo link + floating pill Menubar (with app logo start slot) + welcome text. Page name is hidden on desktop — each page provides its own visible `h1`. Nav items turn primary blue on hover (no underline); the active route item shows a 2px primary-blue underline indicator at the bottom. Reads `useAuth()` and `useTheme()`. |
 | `AppSidebar` | `src/components/AppSidebar/AppSidebar.tsx` | `iAppSidebarProps` | Mobile-only sliding sidebar panel. CSS `transform` animation. Contains close button, user info, nav items, copyright. Locks body scroll when open. Hidden on desktop via CSS. |
 | `AuthButton` | `src/components/AuthButton/AuthButton.tsx` | — (`forwardRef`) | Login/Logout PrimeReact Button. Reads `useAuth()`. Login: sets `banksy_login_pending` in sessionStorage → redirects to Google OAuth. Logout: redirects to `/logout`. Exposes `iAuthButtonHandle` ref with `focus()` method. |
 | `ViewportMask` | `src/components/ViewportMask/ViewportMask.tsx` | — | Full-viewport auth gate. Returns `null` when authenticated. Shows `ProgressSpinner` while loading; login prompt + `AuthButton` when unauthenticated. On failed login: fires error toast + focuses auth button via `iAuthButtonHandle` ref. |
 | `MonthlyGlance` | `src/components/MonthlyGlance/MonthlyGlance.tsx` | — | Chart.js line chart (react-chartjs-2) showing cumulative monthly spending vs. hardcoded $2,000 budget. States: Skeleton (auth loading), ProgressSpinner (fetching), retry button (error), Line chart (success). Custom `splitBackground` canvas plugin. Delegates data to `useMonthlyGlance`. |
-| `ScheduledDeposits` | `src/components/ScheduledDeposits/ScheduledDeposits.tsx` | — | PrimeReact Accordion listing upcoming scheduled deposits. States: Skeleton, ProgressSpinner, retry button, empty-state message, Accordion. 1 item on mobile / 5 on desktop. Delegates data to `useScheduledDeposits`. |
+| `ScheduledDeposits` | `src/components/ScheduledDeposits/ScheduledDeposits.tsx` | — | PrimeReact Accordion listing upcoming scheduled deposits. States: Skeleton, ProgressSpinner, retry button, empty-state message (no top/bottom padding on mobile), Accordion. 1 item on mobile / 5 on desktop. Delegates data to `useScheduledDeposits`. |
 | `LinkAccount` | `src/components/LinkAccount/LinkAccount.tsx` | — | Multistate "Link Account" PrimeReact Button. Default: enabled, label "Link Account". Loading: disabled with spinner. Delegates all logic to `useLinkAccount`. |
+| `QuickAccountOverview` | `src/components/QuickAccountOverview/QuickAccountOverview.tsx` | — | Dashboard accordion listing all linked Plaid accounts. States: Skeleton (auth loading / no user), ProgressSpinner overlay (loading), retry button overlay (error), centered empty state with "Get started with Banksy by linking your accounts" + `<LinkAccount />` (no accounts), PrimeReact Accordion (success). On mobile with 5+ accounts the Accordion is wrapped in a `<ScrollPanel style={{ height: '100%' }}>`. Each panel shows bank name, last deposit, balance, `CustomAccountNameButton`, and up to 3 (mobile) / 5 (desktop) recent transactions. Delegates data to `useQuickAccountOverview`. |
+| `CustomAccountNameButton` | `src/components/CustomAccountNameButton/CustomAccountNameButton.tsx` | `iCustomAccountNameButtonProps` | PrimeReact Button that opens `CustomAccountNameModal`. Label is "Add Name" when `currentCustomName` is null, "Edit Name" otherwise. Accepts `buttonProps` to customize styling. Owns modal-visible state; calls `onSuccess` and closes modal on save. |
+| `CustomAccountNameModal` | `src/components/CustomAccountNameModal/CustomAccountNameModal.tsx` | `iCustomAccountNameModalProps` | PrimeReact `Dialog` for setting an account's custom display name. Prefills input with `currentCustomName`, or a derived label when null. Calls `setAccountName` on save; fires `onSuccess(newName)` and closes on success. Shows a toast on 404 or other errors. |
 
 ### Table B: Pages
 
 | Name | File | Route | Description |
 |------|------|-------|-------------|
-| `HomepagePage` | `src/components/Homepage/HomepagePage.tsx` | `/dashboard` | Dashboard page. Renders `MonthlyGlance` (spending-trend graph section) and `ScheduledDeposits` (next-deposit region). Contains a placeholder accounts section. |
+| `HomepagePage` | `src/components/Homepage/HomepagePage.tsx` | `/dashboard` | Dashboard page. Renders `h1.dashboard__title` "Dashboard" (SR-only on mobile, visible on desktop as a grid row), `MonthlyGlance` (spending-trend graph section), `ScheduledDeposits` (next-deposit region), and `QuickAccountOverview` (account overview section). |
 | `AccountPage` | `src/components/Account/AccountPage.tsx` | `/account` | Account Actions page. H1, description, and an actions grid containing `LinkAccount`. |
 | `SettingsPage` | `src/components/Settings/SettingsPage.tsx` | `/settings` | Minimal settings page. H1 + `AuthButton`. |
 
@@ -103,6 +106,7 @@ npm run lint            — run ESLint
 | `useMonthlyGlance` | `src/hooks/useMonthlyGlance.ts` | `{ status: tStatus, data: iMonthlyGlanceDataPoint[], retry: () => void }` | Fetches monthly glance data via `fetchMonthlyGlance` when user is present. Converts raw `dailyTotals` to cumulative data points. Error triggers toast. `retry()` re-triggers fetch. Cancels in-flight requests on unmount. |
 | `useScheduledDeposits` | `src/hooks/useScheduledDeposits.ts` | `{ status: tStatus, deposits: iScheduledDeposit[], retry: () => void }` | Fetches scheduled deposits via `fetchScheduledDeposits` when user is present; filters to `isActive` items. Error triggers toast. `retry()` re-triggers fetch. Cancels in-flight requests on unmount. |
 | `useLinkAccount` | `src/hooks/useLinkAccount.ts` | `{ isLoading: boolean, initiateLinkFlow: () => void }` | Orchestrates Plaid bank link flow. Calls `fetchLinkToken`, opens Plaid modal via `usePlaidLink`, handles `onSuccess` (exchange token + success toast) and `onExit` (error toast on Plaid error). |
+| `useQuickAccountOverview` | `src/hooks/useQuickAccountOverview.ts` | `{ status: tStatus, accounts: iAccountWithTransactions[], relinkRequired: iRelinkSignal[], retry: () => void, refetchBalance: () => void }` | Fetches account balances and 30-day transactions in parallel. Derives `iAccountWithTransactions[]` via `useMemo`. `retry()` re-triggers both fetches. `refetchBalance()` silently refreshes balance only (used after a name save). Error triggers toast. Cancels in-flight requests on unmount. |
 
 ### Table D: Services
 
@@ -113,6 +117,9 @@ npm run lint            — run ESLint
 | `fetchScheduledDeposits` | `src/services/scheduledDepositsService.ts` | `GET /api/recurring/scheduled-deposits` | Returns `iScheduledDeposit[]`. Called by `useScheduledDeposits`. Throws on non-2xx. |
 | `fetchLinkToken` | `src/services/plaidService.ts` | `GET /api/plaid/link-token` | Returns `iPlaidLinkTokenResponse`. Called by `useLinkAccount` to start a new bank link. Throws `{ status: 500 }` on server error. |
 | `exchangePublicToken` | `src/services/plaidService.ts` | `POST /api/plaid/exchange` | Exchanges Plaid public token after `onSuccess`. Returns `iPlaidExchangeResponse`. Throws `{ status: 500 }` on server error. |
+| `fetchBalance` | `src/services/balanceService.ts` | `GET /api/balance` | Returns `iBalanceResponse`. Called by `useQuickAccountOverview`. Throws on non-2xx. |
+| `fetchTransactions` | `src/services/transactionService.ts` | `GET /api/transactions` | Returns `iTransactionsResponse`. Accepts optional `days` param (default 30). Called by `useQuickAccountOverview`. Throws on non-2xx. |
+| `setAccountName` | `src/services/plaidService.ts` | `PUT /api/plaid/account/:id/name` | Sets or updates the custom display name for one account. Returns `void`. Throws a typed error with response status on non-2xx. Called by `CustomAccountNameModal`. |
 
 ### Table E: Contexts
 
@@ -145,6 +152,12 @@ npm run lint            — run ESLint
 | `iScheduledDeposit` | interface | Recurring deposit stream: `merchantName`, `description`, `frequency`, `firstDate`, `lastDate`, `predictedNextDate`, `averageAmount`, `lastAmount`, `isActive`, `personalFinanceCategory`, `status` |
 | `tRelinkErrorType` | type alias | `"LOGIN_REQUIRED" \| "INVALID_TOKEN"` |
 | `iRelinkSignal` | interface | Relink signal returned on balance, transactions, and plaid/status: `plaidItemId`, `institutionName`, `errorType`, `canRelink`, `ownerName`, `message` |
+| `iAccount` | interface | Single Plaid account from `GET /api/balance`: `accountId`, `name`, `type`, `subtype`, `currentBalance`, `availableBalance`, `isoCurrencyCode`, `institutionName`, `customName` |
+| `iBalanceResponse` | interface | `GET /api/balance` response: `{ accounts: iAccount[], relinkRequired: iRelinkSignal[] }` |
+| `iTransaction` | interface | Single transaction row from `GET /api/transactions`: `accountId`, `date`, `name`, `amount` (positive=debit, negative=credit), `isoCurrencyCode`, `category` |
+| `iTransactionsResponse` | interface | `GET /api/transactions` response: `{ transactions: iTransaction[], total: number, relinkRequired: iRelinkSignal[] }` |
+| `iAccountWithTransactions` | interface | Derived UI type from `useQuickAccountOverview`: `iAccount` + `transactions: iTransaction[]` (sorted desc by date) + `lastDeposit: iTransaction \| null` (first transaction with `amount < 0`) |
+| `iSetAccountNameRequest` | interface | `PUT /api/plaid/account/:id/name` request body: `{ customName: string }` |
 
 ---
 
@@ -382,6 +395,9 @@ Override per-test: `server.use(handlers.monthlyGlance.serverError)`.
 - `src/components/MonthlyGlance/MonthlyGlance.tsx`
 - `src/components/ScheduledDeposits/ScheduledDeposits.tsx`
 - `src/components/LinkAccount/LinkAccount.tsx`
+- `src/components/QuickAccountOverview/QuickAccountOverview.tsx`
+- `src/components/CustomAccountNameButton/CustomAccountNameButton.tsx`
+- `src/components/CustomAccountNameModal/CustomAccountNameModal.tsx`
 
 **Pages:**
 - `src/components/Homepage/HomepagePage.tsx` (route: `/dashboard`)
@@ -392,12 +408,15 @@ Override per-test: `server.use(handlers.monthlyGlance.serverError)`.
 - `src/hooks/useMonthlyGlance.ts`
 - `src/hooks/useScheduledDeposits.ts`
 - `src/hooks/useLinkAccount.ts`
+- `src/hooks/useQuickAccountOverview.ts`
 
 **Services:**
 - `src/services/authService.ts`
 - `src/services/monthlyGlanceService.ts`
 - `src/services/scheduledDepositsService.ts`
 - `src/services/plaidService.ts`
+- `src/services/balanceService.ts`
+- `src/services/transactionService.ts`
 
 **Contexts:**
 - `src/contexts/ThemeContext.tsx`
@@ -417,11 +436,7 @@ None currently documented.
 
 ### Planned / in progress
 
-<!-- !EXPERIMENTAL! REMOVE BEFORE USING IN PRODUCTION SESSIONS -->
-**Quick Account Overview** (not yet implemented)
-- Description: An accordion displaying all of the authenticated user's linked Plaid accounts. Each accordion item header shows the account name. The expanded panel shows the account balance and a short list of recent transactions, plus a link to the full account view.
-- Status: High-level description only. No plan documents, no design, no API decisions made. Do not begin implementation without a full plan and approval.
-<!-- !EXPERIMENTAL! END -->
+None.
 
 ---
 

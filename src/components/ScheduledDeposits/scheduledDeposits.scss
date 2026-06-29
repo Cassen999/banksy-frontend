@@ -41,8 +41,14 @@
   }
 
   &__empty {
-    padding: 1rem;
+    padding: 0 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
     color: var(--text-color-secondary);
+
+    @include bp('desktop') {
+      padding: 1rem;
+    }
   }
 
   &__header {

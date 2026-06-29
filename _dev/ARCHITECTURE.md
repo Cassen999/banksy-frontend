@@ -741,7 +741,9 @@ tag in `index.html` uses `viewport-fit=cover` to enable safe-area support.
 
 **Login notification:** Layout runs a `useEffect` on `[isLoading, user]`. When auth resolves with a user present and the `banksy_login_pending` sessionStorage flag is set, it fires a success toast ("Login Successful / Welcome to Banksy!") and clears the flag. This distinguishes a fresh login from a returning session.
 
-**HTML hierarchy decision (enforced globally):** `<h1>` belongs in the page body (inside `<main>`), never in the `<header>`. Every page rendered in Layout must begin with its own `<h1>`.
+**HTML hierarchy decision (enforced globally):** `<h1>` belongs in the page body (inside `<main>`), never in the `<header>`. Every page rendered in Layout must begin with its own `<h1>`. On desktop the `AppHeader` hides the page name entirely (CSS `display: none`) — the visible page title is the `<h1>` on the page. On mobile the page name appears in the header and the page `<h1>` is SR-only.
+
+**Nav active state:** `NAV_ITEMS` in `Layout.tsx` adds `className: 'active'` to whichever item's `url` matches the current `location.pathname`. `AppHeader` styles the matching `.p-menuitem.active` with a 2px primary-blue `::after` underline at the bottom of the item. Hover state changes icon and text to `var(--color-primary)` with no underline.
 
 **Sidebar toggle:** The hamburger button (`☰`) in the mobile header opens the sidebar. The `×` button inside the sidebar panel closes it. Clicking the backdrop also closes it.
 
@@ -783,10 +785,12 @@ Auth gating is handled globally by `ViewportMask` — this component always rend
 
 **Structure:**
 - `div.dashboard` root
-  - `h1.dashboard__title` — "Dashboard"
+  - `h1.dashboard__title` — "Dashboard" (SR-only on mobile via clip trick; visible on desktop as grid row 1 spanning both columns, `font-size: 1.5rem`, `font-weight: 700`)
   - `section.dashboard__graph` (aria-label "Spending trend graph") — renders `<MonthlyGlance />`
   - `div.dashboard__next-deposit` (role "region", aria-label "Next scheduled deposit") — renders `<ScheduledDeposits />`
   - `section.dashboard__accounts` (aria-label "Account overview") — renders `<QuickAccountOverview />`
+
+**Desktop grid:** `grid-template-columns: 40% 1fr; grid-template-rows: auto 3fr 2fr`. The title is row 1 (both columns), graph is column 1 row 2, next-deposit is column 1 row 3, accounts is column 2 rows 2–3.
 
 **Dependencies:** `MonthlyGlance`, `ScheduledDeposits`, `QuickAccountOverview`. No hooks, no navigation, no theme reads.
 
@@ -993,17 +997,18 @@ States:
 - **Auth loading / no user**: renders `<Skeleton />`.
 - **Loading**: opaque mask + `<ProgressSpinner />`.
 - **Error**: opaque mask + retry button; clicking calls `retry()`.
-- **Empty** (no accounts): plain text "No linked accounts".
-- **Success**: PrimeReact `<Accordion>` (single-select, all closed by default) with one panel per account.
+- **Empty** (no accounts after successful fetch): centered `.quick-account-overview__empty-state` div with "Get started with Banksy by linking your accounts" message + `<LinkAccount />` button.
+- **Success**: PrimeReact `<Accordion>` (single-select, all closed by default) with one panel per account. On mobile (`!isDesktop()`) with 5 or more accounts the Accordion is wrapped in `<ScrollPanel className="quick-account-overview__scroll-panel" style={{ height: '100%' }}>`. `.quick-account-overview` has `height: 100%` to establish a concrete containing-block height for the ScrollPanel.
 
-Each accordion **header** shows the formatted account label: `"${institutionName} - ${Subtype}"` (subtype title-cased) when subtype is non-null, or just `institutionName`.
+Each accordion **header** shows the formatted account label: custom name when set; otherwise `"${institutionName} - ${Subtype}"` (subtype title-cased) when subtype is non-null; otherwise just `institutionName`.
 
 Each accordion **panel** (`AccountPanel` sub-component) shows:
-- Custom name (when set) in a `.quick-account-overview__custom-name` span
-- Balance row (`currentBalance` formatted as currency, or `—` for null)
+- Bank name row
+- Account Name row with `<CustomAccountNameButton>` and optional custom name span
 - Last deposit row (absolute value of `lastDeposit.amount` formatted as currency, or `—`)
+- Balance row (`currentBalance` formatted as currency, or `—` for null)
 - `<CustomAccountNameButton>` — `onSuccess` calls `hook.refetchBalance()` to silently refresh
-- Recent transactions list (up to 3 on mobile, up to 5 on desktop — based on `window.innerWidth >= 1024`)
+- Recent transactions list (up to 3 on mobile, up to 5 on desktop — `isDesktop()` called inline at render time)
 - "Detailed View" link (placeholder href)
 
 **Amount display convention:** `amount > 0` is a debit (money out) — displayed as `"-$X.XX"` with class `--debit` (red). `amount < 0` is a credit (money in) — displayed as `"$X.XX"` (absolute value) with class `--credit` (green). `lastDeposit.amount` is always negative by construction (filtered to `amount < 0`), so the last deposit value is always shown as positive absolute value.
@@ -1017,7 +1022,7 @@ Routes are defined in `src/App.tsx`. Update this table whenever a route is added
 | Path | Component | Description |
 |------|-----------|-------------|
 | `/` | redirect | Permanently redirects to `/dashboard` |
-| `/dashboard` | `HomepagePage` | Dashboard — monthly spending chart (MonthlyGlance) and next scheduled deposit panel (ScheduledDeposits) |
+| `/dashboard` | `HomepagePage` | Dashboard — monthly spending chart (MonthlyGlance), next scheduled deposit panel (ScheduledDeposits), and linked account overview (QuickAccountOverview) |
 | `/account` | `AccountPage` | Account Actions page — H1, description, and a grid of account management buttons (Link Account) |
 | `/settings` | `SettingsPage` | Settings page — logout button (initial implementation) |
 
